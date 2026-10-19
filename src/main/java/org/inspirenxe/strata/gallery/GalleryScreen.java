@@ -112,6 +112,7 @@ public final class GalleryScreen implements Screen {
         this.usage = ui.textArea()
                 .setReadOnly(true)
                 .setWrap(false)
+                .setHighlighter(JavaHighlighter.INSTANCE)
                 .setAlignment(HorizontalAlignment.STRETCH, VerticalAlignment.TOP);
         this.usagePanel = GalleryScreen.panel(ui)
                 .rows(GridLength.auto(), GridLength.auto())
