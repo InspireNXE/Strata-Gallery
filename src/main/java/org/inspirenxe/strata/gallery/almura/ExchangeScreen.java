@@ -28,7 +28,6 @@ import org.inspirenxe.strata.api.control.display.Label;
 import org.inspirenxe.strata.api.control.field.TextBox;
 import org.inspirenxe.strata.api.control.window.Window;
 import org.inspirenxe.strata.api.event.input.InputEvents;
-import org.inspirenxe.strata.api.geometry.Insets;
 import org.inspirenxe.strata.api.layout.Anchor;
 import org.inspirenxe.strata.api.layout.AnchorPanel;
 import org.inspirenxe.strata.api.layout.GridLength;
@@ -335,7 +334,7 @@ public final class ExchangeScreen implements Screen {
                         GridLength.auto(), GridLength.fixed(5))
                 .rows(GridLength.weighted(1))
                 .setSpacing(4, 0)
-                .setPadding(new Insets(3, 0, 0, 0))
+                .setPadding(3, 0, 0, 0)
                 .add(icon, 0, 0)
                 .add(name, 0, 1)
                 .add(quantity, 0, 2);

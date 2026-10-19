@@ -18,7 +18,6 @@ package org.inspirenxe.strata.gallery.pages;
 import org.inspirenxe.strata.api.ComponentFactory;
 import org.inspirenxe.strata.api.component.Component;
 import org.inspirenxe.strata.api.control.button.Button;
-import org.inspirenxe.strata.api.geometry.Insets;
 import org.inspirenxe.strata.api.layout.AbsolutePanel;
 import org.inspirenxe.strata.api.layout.Anchor;
 import org.inspirenxe.strata.api.layout.AnchorPanel;
@@ -369,10 +368,10 @@ final class LayoutPages {
                         // Margin is space outside a component, inside the slot its parent gives it
                         final StackPanel row = ui.stackPanel(Orientation.HORIZONTAL)
                                 .add(ui.button("A"))
-                                .add(ui.button("B").setMargin(new Insets(12, 0, 12, 0)))
+                                .add(ui.button("B").setMargin(12, 0))
                                 .add(ui.button("C"));
                         // 20 units left and right, 6 above and below
-                        card.setPadding(Insets.of(20, 6));
+                        card.setPadding(20, 6);
                         panel.add(card).add(row);
                         """, context -> {
                     final ComponentFactory ui = context.ui();
@@ -384,12 +383,11 @@ final class LayoutPages {
                                             .add(LayoutPages.box(ui, "Child", BLUE, 90, 30).setMargin(10)))),
                                     Samples.example(ui, "Left 30, top 4", LayoutPages.frame(ui, ui.stackPanel()
                                             .add(LayoutPages.box(ui, "Child", BLUE, 90, 30)
-                                                    .setMargin(new Insets(30, 4, 0, 0))))),
+                                                    .setMargin(30, 4, 0, 0)))),
                                     Samples.example(ui, "Between siblings", LayoutPages.frame(ui,
                                             ui.stackPanel(Orientation.HORIZONTAL)
                                                     .add(LayoutPages.box(ui, "A", BLUE, 40, 30))
-                                                    .add(LayoutPages.box(ui, "B", GREEN, 40, 30).setMargin(
-                                                            new Insets(12, 0, 12, 0)))
+                                                    .add(LayoutPages.box(ui, "B", GREEN, 40, 30).setMargin(12, 0))
                                                     .add(LayoutPages.box(ui, "C", PURPLE, 40, 30))))),
                             Samples.section(ui, "Padding",
                                     Samples.example(ui, "None", ui.stackPanel()
@@ -401,7 +399,7 @@ final class LayoutPages {
                                             .add(LayoutPages.box(ui, "Child", BLUE, 90, 30))),
                                     Samples.example(ui, "20 across, 6 down", ui.stackPanel()
                                             .setBackground(AMBER)
-                                            .setPadding(Insets.of(20, 6))
+                                            .setPadding(20, 6)
                                             .add(LayoutPages.box(ui, "Child", BLUE, 90, 30))),
                                     Samples.example(ui, "Padding 8 and a child margin 8", ui.stackPanel()
                                             .setBackground(AMBER)

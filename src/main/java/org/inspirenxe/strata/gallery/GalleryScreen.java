@@ -23,7 +23,6 @@ import org.inspirenxe.strata.api.control.collection.ListView;
 import org.inspirenxe.strata.api.control.collection.TreeView;
 import org.inspirenxe.strata.api.control.display.Label;
 import org.inspirenxe.strata.api.control.field.TextArea;
-import org.inspirenxe.strata.api.geometry.Insets;
 import org.inspirenxe.strata.api.layout.Anchor;
 import org.inspirenxe.strata.api.layout.GridLength;
 import org.inspirenxe.strata.api.layout.GridPanel;
@@ -157,7 +156,7 @@ public final class GalleryScreen implements Screen {
                 .columns(GridLength.fixed(170), GridLength.weighted(1))
                 .rows(GridLength.weighted(1))
                 .setSpacing(8, 0)
-                .setPadding(Insets.of(8))
+                .setPadding(8)
                 .add(GalleryScreen.panel(ui).add(sidebar, 0, 0).setAnchor(Anchor.FILL), 0, 0)
                 .add(page, 0, 1)
                 .setBackground(BACKGROUND)
@@ -183,7 +182,7 @@ public final class GalleryScreen implements Screen {
         this.log.clear();
         final StackPanel holder = this.ui.stackPanel()
                 .setSpacing(8)
-                .setPadding(Insets.of(10))
+                .setPadding(10)
                 .add(page.content().apply(context))
                 .setAlignment(HorizontalAlignment.STRETCH, VerticalAlignment.TOP);
         this.log.watch(holder, EventLog.ATTRIBUTE_EVENTS);
@@ -203,7 +202,7 @@ public final class GalleryScreen implements Screen {
         return ui.gridPanel()
                 .columns(GridLength.weighted(1))
                 .rows(GridLength.weighted(1))
-                .setPadding(Insets.of(4))
+                .setPadding(4)
                 .setBackground(PANEL)
                 .setBorder(PANEL_BORDER);
     }

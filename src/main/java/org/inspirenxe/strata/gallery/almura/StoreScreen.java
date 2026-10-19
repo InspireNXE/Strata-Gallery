@@ -30,7 +30,6 @@ import org.inspirenxe.strata.api.control.display.Label;
 import org.inspirenxe.strata.api.control.field.TextBox;
 import org.inspirenxe.strata.api.control.pane.TabBar;
 import org.inspirenxe.strata.api.control.window.Window;
-import org.inspirenxe.strata.api.geometry.Insets;
 import org.inspirenxe.strata.api.layout.Anchor;
 import org.inspirenxe.strata.api.layout.AnchorPanel;
 import org.inspirenxe.strata.api.layout.GridLength;
@@ -296,7 +295,7 @@ public final class StoreScreen implements Screen {
                         Look.span("/ea", Look.GRAY))
                 .setTextScale(0.8f)
                 .setAnchor(Anchor.MIDDLE_RIGHT)
-                .setMargin(new Insets(0, 0, 3, 0));
+                .setMargin(0, 0, 3, 0);
         if (item.quantity() > 0) {
             price.setTooltip("Total: " + Look.withSuffix(item.price().multiply(BigDecimal.valueOf(item.quantity()))));
         }
@@ -355,7 +354,7 @@ public final class StoreScreen implements Screen {
                         GridLength.fixed(5))
                 .rows(GridLength.weighted(1))
                 .setSpacing(4, 0)
-                .setPadding(new Insets(3, 0, 0, 0))
+                .setPadding(3, 0, 0, 0)
                 .add(icon, 0, 0)
                 .add(name, 0, 1)
                 .add(prices, 0, 2);
