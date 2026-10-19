@@ -27,7 +27,24 @@ final class FieldPages {
         return List.of(
                 new Page(SECTION, "Text box", "A single line of text. Enter submits it, Ctrl+Space or typing opens "
                         + "suggestions when the box has a provider, and a handler on the edit request can refuse or "
-                        + "rewrite what the user types.", context -> {
+                        + "rewrite what the user types.", """
+                        final Label status = ui.label("");
+                        final TextBox city = ui.textBox()
+                                .setText("Lisbon")
+                                .setMaxLength(24)
+                                .setSuggestionProvider(TextBox.SuggestionProvider.words(List.of("Lisbon", "Oslo")))
+                                .setWidth(160);
+                        // Enter submits the text
+                        city.onEvent(TextBox.SUBMITTED, event -> status.setText("Going to " + event.value()));
+                        // A handler on the edit request can refuse what the user types, or rewrite it with setValue
+                        final TextBox quantity = ui.textBox().onEvent(TextInput.EDIT, event -> {
+                            if (!event.value().chars().allMatch(Character::isDigit)) {
+                                event.cancel();
+                            }
+                        });
+                        final TextBox password = ui.textBox().setPassword(true);
+                        panel.add(city).add(quantity).add(password).add(status);
+                        """, context -> {
                     final ComponentFactory ui = context.ui();
                     context.watch(TextBox.SUBMIT, TextBox.SUBMITTED, TextBox.COMPLETE, TextBox.COMPLETED);
                     return Samples.column(ui,
@@ -66,7 +83,20 @@ final class FieldPages {
                                     Samples.example(ui, "Wide", ui.textBox().setText("Stretches to 240").setWidth(240))));
                 }),
                 new Page(SECTION, "Text area", "Text over several lines. It edits like a text box, but Enter inserts a "
-                        + "line break, and text taller than the view scrolls.", context -> {
+                        + "line break, and text taller than the view scrolls.", """
+                        final Label count = ui.label("");
+                        // EDITED reports changes from code too, so the count starts right
+                        final TextArea notes = ui.textArea()
+                                .onEvent(TextInput.EDITED, event -> count.setText(event.value().length() + " of 200"))
+                                .setMaxLength(200)
+                                .setVisibleLines(4)
+                                .setText("Ana packs the pears on Monday.\\nBen ships them on Tuesday.");
+                        // Long lines scroll sideways instead of wrapping
+                        final TextArea log = ui.textArea()
+                                .setWrap(false)
+                                .setReadOnly(true);
+                        panel.add(notes).add(count).add(log);
+                        """, context -> {
                     final ComponentFactory ui = context.ui();
                     return Samples.column(ui,
                             Samples.section(ui, "Kinds",
@@ -89,8 +119,20 @@ final class FieldPages {
                                             .setEnabled(false))));
                 }),
                 new Page(SECTION, "Spinner", "A number in a field with step buttons. The wheel and the arrow keys "
-                        + "step too, and typed text becomes the value on Enter or when the field loses focus.",
-                        context -> {
+                        + "step too, and typed text becomes the value on Enter or when the field loses focus.", """
+                        final Label total = ui.label("");
+                        final Spinner quantity = ui.spinner()
+                                .setRange(1, 64)
+                                .setValue(16)
+                                .onEvent(Ranged.CHANGED, event -> total.setText("Total " + event.value() * 3));
+                        final Spinner price = ui.spinner()
+                                .setRange(0, 1000)
+                                .setDecimals(2)
+                                .setStep(0.25)
+                                .setValue(12.5)
+                                .setWidth(80);
+                        panel.add(quantity).add(price).add(total);
+                        """, context -> {
                     final ComponentFactory ui = context.ui();
                     return Samples.column(ui,
                             Samples.section(ui, "Kinds",
@@ -119,7 +161,21 @@ final class FieldPages {
                                             .setEnabled(false))));
                 }),
                 new Page(SECTION, "Slider", "Picks a number from a range by dragging, clicking or the arrow keys. A "
-                        + "step snaps the value, and a label function draws text over the track.", context -> {
+                        + "step snaps the value, and a label function draws text over the track.", """
+                        final Label status = ui.label("");
+                        final Slider volume = ui.slider()
+                                .setRange(0, 100)
+                                .setStep(1)
+                                .setValue(80)
+                                .setLabel(value -> "Volume: " + (int) value + "%")
+                                .onEvent(Ranged.CHANGED, event -> status.setText("Volume " + event.value().intValue()));
+                        final Slider level = ui.slider(Orientation.VERTICAL)
+                                .setRange(0, 10)
+                                .setStep(1)
+                                .setValue(7)
+                                .setHeight(80);
+                        panel.add(volume).add(level).add(status);
+                        """, context -> {
                     final ComponentFactory ui = context.ui();
                     return Samples.column(ui,
                             Samples.section(ui, "Horizontal",
@@ -150,7 +206,15 @@ final class FieldPages {
                 }),
                 new Page(SECTION, "Color picker", "Picks a color with a square for saturation and brightness, a strip "
                         + "for hue, an optional strip for alpha and a hex field. It keeps the hue through grays and "
-                        + "black.", context -> {
+                        + "black.", """
+                        final Label hex = ui.label("");
+                        // PICKED reports changes from code too, so setColor fills in the label
+                        final ColorPicker tint = ui.colorPicker()
+                                .setAlphaShown(true)
+                                .onEvent(ColorPicker.PICKED, event -> hex.setText(Integer.toHexString(event.value())))
+                                .setColor(0xFF3A8EE6);
+                        panel.add(tint).add(hex);
+                        """, context -> {
                     final ComponentFactory ui = context.ui();
                     context.watch(ColorPicker.PICK, ColorPicker.PICKED);
                     return Samples.column(ui,

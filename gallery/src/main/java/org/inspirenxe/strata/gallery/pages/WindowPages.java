@@ -42,9 +42,25 @@ final class WindowPages {
 
     static List<Page> pages() {
         return List.of(
-                new Page(SECTION, "Window", "A framed panel with a title bar and a close button. It can be moved by "
-                        + "its title bar and resized by its grip or its edges, inside the slot its parent gives it.",
-                        context -> {
+                new Page(SECTION, "Window", "A framed panel with a title bar and a close button. It can be moved "
+                        + "by its title bar and resized by its grip or its edges, inside the slot its parent gives "
+                        + "it.", """
+                        final Window settings = ui.window("Settings")
+                                .setResizable(true)
+                                .setEdgeResizable(true)
+                                .add(ui.stackPanel()
+                                        .setSpacing(4)
+                                        .add(ui.checkBox("Show prices"))
+                                        .add(ui.checkBox("Sound on sale")))
+                                .setSize(200, 110)
+                                .setMinSize(140, 90);
+                        // The close button and Escape ask to close; hide or remove the window when it does
+                        settings.onEvent(Closable.CLOSED, event -> settings.setVisible(false));
+                        panel.add(settings);
+
+                        // Or open it over the screen as a dialog
+                        ui.overlays().dialog(ui.window("Notice").add(ui.label("Saved.")));
+                        """, context -> {
                     final ComponentFactory ui = context.ui();
                     context.watch(Window.RESIZE, Window.RESIZED);
                     final Window settings = ui.window("Settings")
@@ -110,8 +126,21 @@ final class WindowPages {
                 }),
                 new Page(SECTION, "Message box", "A window with a message and a row of buttons, opened as a dialog. "
                         + "The first button takes focus, and the close button and Escape give each set's dismiss "
-                        + "answer.",
-                        context -> {
+                        + "answer.", """
+                        final Label status = ui.label("");
+                        final Button ask = ui.button("Sell the lamp?");
+                        ask.onEvent(Button.PRESSED, press -> {
+                            final MessageBox box = ui.messageBox()
+                                    .setTitle("Sell")
+                                    .setMessage("Sell the brass lamp for 40 coins?")
+                                    .setButtons(MessageBox.Buttons.YES_NO)
+                                    .setButtonText(MessageBox.Result.YES, "Sell")
+                                    .setButtonText(MessageBox.Result.NO, "Keep it")
+                                    .onEvent(MessageBox.ANSWERED, event -> status.setText("Answered " + event.value()));
+                            ui.overlays().dialog(box);
+                        });
+                        panel.add(ask).add(status);
+                        """, context -> {
                     final ComponentFactory ui = context.ui();
                     context.watch(MessageBox.ANSWER, MessageBox.ANSWERED);
                     final StackPanel sets = Samples.row(ui).setSpacing(6);
@@ -145,7 +174,19 @@ final class WindowPages {
                                             "Delete the listing for the oak chair?", MessageBox.Buttons.YES_NO))));
                 }),
                 new Page(SECTION, "Toast", "A short notice in the top-right corner that closes itself after a "
-                        + "while. A click closes it early, and it never takes focus.", context -> {
+                        + "while. A click closes it early, and it never takes focus.", """
+                        final Label status = ui.label("");
+                        final Button save = ui.button("Save")
+                                .onEvent(Button.PRESSED, event -> ui.overlays().toast("Saved.")
+                                        .onEvent(Closable.CLOSED, closed -> status.setText("Toast gone")));
+                        // Any component can be a toast, shown for as long as you say
+                        final Button trade = ui.button("Trade done")
+                                .onEvent(Button.PRESSED, event -> ui.overlays().toast(ui.stackPanel()
+                                        .setPadding(6)
+                                        .setBackground(Paint.solid(0xF0202226))
+                                        .add(ui.label("Ben bought 3 lanterns.")), 6000L));
+                        panel.add(save).add(trade).add(status);
+                        """, context -> {
                     final ComponentFactory ui = context.ui();
                     return Samples.column(ui,
                             Samples.section(ui, "Text",
@@ -177,7 +218,21 @@ final class WindowPages {
                                             "Trade done", "Ben bought 3 lanterns."))));
                 }),
                 new Page(SECTION, "Tooltip", "Shown next to the pointer while it rests on a component. A tooltip "
-                        + "can be plain text, lines of styled text, or any component.", context -> {
+                        + "can be plain text, lines of styled text, or any component.", """
+                        final Button refresh = ui.button("Refresh")
+                                .setTooltip("Fetch the latest prices.");
+                        final Button lamp = ui.button("Brass lamp")
+                                .setTooltip(Tooltip.lines(List.of(
+                                        List.of(TextSpan.of("Brass lamp").withStyle(TextStyle.DEFAULT.withBold(true))),
+                                        List.of(TextSpan.of("Price: "), TextSpan.of("40 coins")))));
+                        // A component tooltip is built when it shows, with the factory it is given
+                        final Button ben = ui.button("Ben")
+                                .setTooltip(Tooltip.of(factory -> factory.stackPanel()
+                                        .setPadding(6)
+                                        .setBackground(Paint.solid(0xF0202226))
+                                        .add(factory.label("Trading since spring."))));
+                        panel.add(refresh).add(lamp).add(ben);
+                        """, context -> {
                     final ComponentFactory ui = context.ui();
                     final TextStyle gold = TextStyle.DEFAULT.withColor(0xFFF0C050);
                     final TextStyle muted = TextStyle.DEFAULT.withColor(Samples.MUTED);

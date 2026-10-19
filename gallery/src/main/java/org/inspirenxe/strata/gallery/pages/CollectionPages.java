@@ -58,7 +58,20 @@ final class CollectionPages {
     static List<Page> pages() {
         return List.of(
                 new Page(SECTION, "List view", "A scrolling list of items, one row each. Rows can be any component, "
-                        + "the arrow keys move the selection, and Enter or a double click activates a row.", context -> {
+                        + "the arrow keys move the selection, and Enter or a double click activates a row.", """
+                        final Label status = ui.label("");
+                        final ListView<String> people = ui.<String>listView()
+                                .setItems(List.of("Ana", "Ben", "Cleo", "Dev"))
+                                .setPlaceholder("No one yet")
+                                .select(0);
+                        people.setSize(140, 120);
+                        people.onEvent(SingleSelection.SELECTED, event -> status.setText("Selected "
+                                + people.selected().orElse("no one")));
+                        // Enter or a double click activates a row; the value is its index
+                        people.onEvent(Activatable.ACTIVATED, event -> status.setText("Opened "
+                                + people.items().get(event.value())));
+                        panel.add(people).add(status);
+                        """, context -> {
                     final ComponentFactory ui = context.ui();
                     final ListView<Fruit> custom = ui.<Fruit>listView(fruit -> CollectionPages.fruitRow(ui, fruit))
                             .setItems(FRUIT)
@@ -79,7 +92,20 @@ final class CollectionPages {
                                     Samples.example(ui, "Empty, with a placeholder", empty)));
                 }),
                 new Page(SECTION, "Combo box", "A closed box that shows the selected option and opens a list of the "
-                        + "others below it. The arrow keys change the selection while it is closed.", context -> {
+                        + "others below it. The arrow keys change the selection while it is closed.", """
+                        record Fruit(String name, double price) {
+                        }
+
+                        final Label price = ui.label("");
+                        final ComboBox<Fruit> fruit = ui.<Fruit>comboBox(Fruit::name)
+                                .setItems(List.of(new Fruit("Apple", 0.40), new Fruit("Pear", 0.55)))
+                                .setMaxVisibleOptions(4)
+                                .select(0);
+                        fruit.setWidth(140);
+                        fruit.onEvent(SingleSelection.SELECTED, event -> fruit.selected()
+                                .ifPresent(choice -> price.setText(String.format("%.2f each", choice.price()))));
+                        panel.add(fruit).add(price);
+                        """, context -> {
                     final ComponentFactory ui = context.ui();
                     final ComboBox<Fruit> fruit = ui.<Fruit>comboBox(Fruit::name)
                             .setItems(FRUIT)
@@ -103,7 +129,28 @@ final class CollectionPages {
                                     Samples.example(ui, "Disabled", disabled)));
                 }),
                 new Page(SECTION, "Table view", "Rows of items under column headers. A click on a sortable header "
-                        + "sorts by that column, and a second click reverses it.", context -> {
+                        + "sorts by that column, and a second click reverses it.", """
+                        record Book(String title, String author, double price) {
+                        }
+
+                        final Label status = ui.label("");
+                        final TableColumn<Book> price = ui.<Book>tableColumn("Price")
+                                .setWidth(GridLength.fixed(60))
+                                .setCellText(book -> String.format("%.2f", book.price()))
+                                .setComparator(Comparator.comparingDouble(Book::price));
+                        final TableView<Book> books = ui.<Book>tableView()
+                                .addTextColumn("Title", GridLength.weighted(1), Book::title)
+                                .addTextColumn("Author", GridLength.fixed(80), Book::author)
+                                .addColumn(price)
+                                .setItems(List.of(
+                                        new Book("Glass Cities", "Ben", 8.00),
+                                        new Book("Small Hours", "Cleo", 18.00)))
+                                .sortBy(price, true);
+                        books.setSize(360, 150);
+                        books.onEvent(SingleSelection.SELECTED, event -> books.selected()
+                                .ifPresent(book -> status.setText(book.title() + " by " + book.author())));
+                        panel.add(books).add(status);
+                        """, context -> {
                     final ComponentFactory ui = context.ui();
                     context.watch(TableView.SORT, TableView.SORTED);
                     final TableColumn<Book> price = ui.<Book>tableColumn("Price")
@@ -134,7 +181,23 @@ final class CollectionPages {
                                     Samples.example(ui, "Empty, with a placeholder", empty)));
                 }),
                 new Page(SECTION, "Tree view", "Items with children, shown as indented rows. A click on the arrow, "
-                        + "or Left and Right, collapses and expands a row.", context -> {
+                        + "or Left and Right, collapses and expands a row.", """
+                        record Entry(String name, List<Entry> children) {
+                        }
+
+                        final Label status = ui.label("");
+                        final List<Entry> files = List.of(
+                                new Entry("Documents", List.of(new Entry("budget.csv", List.of()))),
+                                new Entry("readme.txt", List.of()));
+                        final TreeView<Entry> tree = ui.<Entry>treeView(entry -> ui.label(entry.name()))
+                                .setChildren(Entry::children)
+                                .setItems(files)
+                                .expandAll();
+                        tree.setSize(200, 160);
+                        tree.onEvent(SingleSelection.SELECTED, event -> tree.selected()
+                                .ifPresent(entry -> status.setText("Selected " + entry.name())));
+                        panel.add(tree).add(status);
+                        """, context -> {
                     final ComponentFactory ui = context.ui();
                     context.watch(TreeView.EXPAND, TreeView.EXPANDED);
                     final TreeView<FileEntry> files = ui.<FileEntry>treeView(entry -> ui.label(entry.name())
@@ -156,8 +219,21 @@ final class CollectionPages {
                                     Samples.example(ui, "Collapsed, wider indent", collapsed)));
                 }),
                 new Page(SECTION, "Grid view", "Fixed slots in rows and columns, each holding an item or nothing. "
-                        + "Slots can show a tooltip, and every click is reported with its button and modifiers.",
-                        context -> {
+                        + "Slots can show a tooltip, and every click is reported with its button and modifiers.", """
+                        final Label status = ui.label("");
+                        // A null item leaves its slot empty
+                        final GridView<String> seats = ui.<String>gridView(name -> ui.label(name.substring(0, 1))
+                                        .setAnchor(Anchor.CENTER))
+                                .setColumns(5)
+                                .setCellSize(24)
+                                .setSpacing(2)
+                                .setTooltips(Tooltip::text)
+                                .setItems(Arrays.asList("Ana", "Ben", null, "Cleo", "Dev"));
+                        // Every click is reported with its slot, button and modifiers
+                        seats.onEvent(GridView.CLICKED, event -> status.setText("Slot " + event.value().index()
+                                + ", " + event.value().button()));
+                        panel.add(seats).add(status);
+                        """, context -> {
                     final ComponentFactory ui = context.ui();
                     context.watch(GridView.CLICK, GridView.CLICKED);
                     final List<Fruit> slots = Arrays.asList(FRUIT.get(0), FRUIT.get(1), null, FRUIT.get(2), null,
@@ -184,7 +260,21 @@ final class CollectionPages {
                                     Samples.example(ui, "Larger cells, not selectable", letters)));
                 }),
                 new Page(SECTION, "Dual list", "Two lists side by side with buttons between them that move the "
-                        + "selected item, or every item, to the other side.", context -> {
+                        + "selected item, or every item, to the other side.", """
+                        final Label status = ui.label("");
+                        final DualList<String> members = ui.<String>dualList()
+                                .setTitle(DualList.Side.LEFT, "People")
+                                .setTitle(DualList.Side.RIGHT, "Members")
+                                .setItems(DualList.Side.LEFT, List.of("Ana", "Ben", "Cleo"))
+                                .setItems(DualList.Side.RIGHT, List.of("Dev"))
+                                .setVisibleRows(4);
+                        members.onEvent(DualList.MOVED, event -> status.setText(event.value().item() + " moved to the "
+                                + event.value().side()));
+                        panel.add(members).add(status);
+
+                        // Read the chosen items when you need them
+                        final List<String> chosen = members.items(DualList.Side.RIGHT);
+                        """, context -> {
                     final ComponentFactory ui = context.ui();
                     context.watch(DualList.MOVE, DualList.MOVED);
                     final DualList<String> members = ui.<String>dualList()

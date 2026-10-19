@@ -23,7 +23,21 @@ final class MenuPages {
     static List<Page> pages() {
         return List.of(
                 new Page(SECTION, "Menu bar", "A row of titles along the top of a screen, each opening a menu. While "
-                        + "one is open, moving over another title opens that one instead.", context -> {
+                        + "one is open, moving over another title opens that one instead.", """
+                        final Label status = ui.label("");
+                        final Menu file = ui.menu()
+                                .addItem("New", "Ctrl+N", () -> status.setText("New file"))
+                                .addItem("Open", "Ctrl+O", () -> status.setText("Open a file"))
+                                .addSubmenu("Open recent", ui.menu().addItem("notes.md", () -> status.setText("Notes")))
+                                .addSeparator()
+                                .addItem(ui.menuItem("Save").setShortcut("Ctrl+S").setEnabled(false));
+                        final Menu view = ui.menu()
+                                .addCheckItem("Show prices", true, shown -> status.setText("Prices " + shown));
+                        final MenuBar bar = ui.menuBar()
+                                .addMenu("File", file)
+                                .addMenu("View", view);
+                        panel.add(bar).add(status);
+                        """, context -> {
                     final ComponentFactory ui = context.ui();
                     final Menu recent = MenuPages.logged(context, ui.menu()
                             .addItem("budget.csv", () -> { })
@@ -56,8 +70,23 @@ final class MenuPages {
                                     + "are overlays outside the page, so their choices are logged here by hand."));
                 }),
                 new Page(SECTION, "Context menu", "A menu opened on demand, at a point or below a component, such as "
-                        + "on a right click. It closes when an item is chosen, on Escape, or on a click outside.",
-                        context -> {
+                        + "on a right click. It closes when an item is chosen, on Escape, or on a click outside.", """
+                        final Label status = ui.label("");
+                        final Menu actions = ui.menu()
+                                .addItem("Rename", "F2", () -> status.setText("Rename"))
+                                .addItem("Duplicate", "Ctrl+D", () -> status.setText("Duplicate"))
+                                .addSeparator()
+                                .addItem(ui.menuItem("Delete").setShortcut("Del").setEnabled(false));
+                        // Below a component with open(bounds), or at a point with openAt(x, y)
+                        final Button button = ui.button("Actions");
+                        button.onEvent(Button.PRESSED, event -> actions.open(button.bounds()));
+                        final Label file = ui.label("notes.md").onEvent(InputEvents.CLICK, event -> {
+                            if (event.button() == MouseButton.RIGHT) {
+                                actions.openAt(event.x(), event.y());
+                            }
+                        });
+                        panel.add(button).add(file).add(status);
+                        """, context -> {
                     final ComponentFactory ui = context.ui();
                     final Menu sort = MenuPages.logged(context, ui.menu()
                             .addItem("By name", () -> { })

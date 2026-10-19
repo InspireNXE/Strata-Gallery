@@ -20,7 +20,19 @@ final class ButtonPages {
     static List<Page> pages() {
         return List.of(
                 new Page(SECTION, "Button", "Runs an action when clicked, or on Enter or Space while focused. A "
-                        + "button can carry an icon, or look like a link.", context -> {
+                        + "button can carry an icon, or look like a link.", """
+                        final Label status = ui.label("Not saved");
+                        final Button save = ui.button("Save")
+                                .setIcon(SpriteId.of("shop", "icon/save"))
+                                .setTooltip("Save the listing.")
+                                .onEvent(Button.PRESSED, event -> status.setText("Saved"));
+                        final Button terms = ui.button("Terms of sale").setLink(true);
+                        final Button delete = ui.button("Delete").setEnabled(false);
+                        // Canceling the request refuses the press
+                        final Button locked = ui.button("Locked")
+                                .onEvent(Button.PRESS, event -> event.cancel());
+                        panel.add(save).add(terms).add(delete).add(locked).add(status);
+                        """, context -> {
                     final ComponentFactory ui = context.ui();
                     return Samples.column(ui,
                             Samples.section(ui, "Kinds",
@@ -38,7 +50,18 @@ final class ButtonPages {
                                             .onEvent(Button.PRESS, event -> event.cancel()))));
                 }),
                 new Page(SECTION, "Cycle button", "Steps through a list of values: a left click goes forward, a right "
-                        + "click or Shift goes back. The caption shows the current value.", context -> {
+                        + "click or Shift goes back. The caption shows the current value.", """
+                        final Label status = ui.label("");
+                        final CycleButton<String> order = ui.<String>cycleButton("Order")
+                                .setItems(List.of("Newest", "Cheapest", "Ending soon"))
+                                .select(0);
+                        order.onEvent(SingleSelection.SELECTED, event -> status.setText("Sorted by "
+                                + order.selected().orElse("nothing")));
+                        // A function can label the value instead of a caption
+                        final CycleButton<Integer> perPage = ui.<Integer>cycleButton("", count -> count + " per page")
+                                .setItems(List.of(10, 25, 50));
+                        panel.add(order).add(perPage).add(status);
+                        """, context -> {
                     final ComponentFactory ui = context.ui();
                     return Samples.column(ui,
                             Samples.section(ui, "Kinds",
@@ -53,7 +76,16 @@ final class ButtonPages {
                                             .setEnabled(false))));
                 }),
                 new Page(SECTION, "Check box", "An on and off choice with a caption. Clicking the caption toggles it "
-                        + "too.", context -> {
+                        + "too.", """
+                        final Label status = ui.label("");
+                        final CheckBox prices = ui.checkBox("Show prices")
+                                .setSelected(true)
+                                .onEvent(Toggle.TOGGLED, event -> status.setText(event.value()
+                                        ? "Prices shown"
+                                        : "Prices hidden"));
+                        final CheckBox admin = ui.checkBox("Admin only").setEnabled(false);
+                        panel.add(prices).add(admin).add(status);
+                        """, context -> {
                     final ComponentFactory ui = context.ui();
                     return Samples.column(ui,
                             Samples.section(ui, "States",
@@ -65,7 +97,20 @@ final class ButtonPages {
                 }),
                 new Page(SECTION, "Radio button", "One choice out of a few. A radio group keeps one of its buttons "
                         + "selected and reports the change; it is not a component, so its events are logged here by "
-                        + "hand.", context -> {
+                        + "hand.", """
+                        final Label status = ui.label("");
+                        final RadioGroup<String> sort = ui.radioGroup();
+                        sort.add("Name", "name");
+                        sort.add("Price", "price");
+                        sort.add("Seller", "seller").setEnabled(false);
+                        sort.selectItem("price");
+                        // The group is not a component: listen on it, and put its buttons in a panel
+                        sort.onEvent(SingleSelection.SELECTED, event -> status.setText("Sort by "
+                                + sort.selected().orElse("nothing")));
+                        final StackPanel row = ui.stackPanel(Orientation.HORIZONTAL).setSpacing(6);
+                        sort.buttons().forEach(row::add);
+                        panel.add(row).add(status);
+                        """, context -> {
                     final ComponentFactory ui = context.ui();
                     final RadioGroup<String> sort = ui.radioGroup();
                     sort.add("Name", "name");
@@ -79,7 +124,15 @@ final class ButtonPages {
                                     Samples.example(ui, "Sort by (Seller is disabled)", Samples.row(ui, sort.buttons()))));
                 }),
                 new Page(SECTION, "Toggle switch", "An on and off setting that applies at once, drawn as a track with "
-                        + "a knob.", context -> {
+                        + "a knob.", """
+                        final Label status = ui.label("");
+                        final ToggleSwitch hideSold = ui.toggleSwitch("Hide sold")
+                                .setSelected(true)
+                                .onEvent(Toggle.TOGGLED, event -> status.setText(event.value()
+                                        ? "Sold items hidden"
+                                        : "Sold items shown"));
+                        panel.add(hideSold).add(status);
+                        """, context -> {
                     final ComponentFactory ui = context.ui();
                     return Samples.column(ui,
                             Samples.section(ui, "States",

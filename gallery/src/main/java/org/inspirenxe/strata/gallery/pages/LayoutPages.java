@@ -40,7 +40,22 @@ final class LayoutPages {
     static List<Page> pages() {
         return List.of(
                 new Page(SECTION, "Stack panel", "Lays its children out in a line, top to bottom or left to right. "
-                        + "Weighted children share the room the others leave.", context -> {
+                        + "Weighted children share the room the others leave.", """
+                        final StackPanel column = ui.stackPanel()
+                                .setSpacing(4)
+                                .setPadding(8)
+                                .add(ui.label("Name"))
+                                .add(ui.textBox().setText("Ana"))
+                                .add(ui.button("Order").setAnchor(Anchor.TOP_RIGHT));
+                        // A weighted child shares the room the others leave
+                        final StackPanel row = ui.stackPanel(Orientation.HORIZONTAL)
+                                .setSpacing(4)
+                                .add(ui.button("Back"))
+                                .add(ui.textBox(), 1)
+                                .add(ui.button("Next"))
+                                .setWidth(320);
+                        panel.add(column).add(row);
+                        """, context -> {
                     final ComponentFactory ui = context.ui();
                     return Samples.column(ui,
                             Samples.section(ui, "Orientations and spacing",
@@ -91,8 +106,20 @@ final class LayoutPages {
                                                     .setWidth(220)))));
                 }),
                 new Page(SECTION, "Grid panel", "Places children in rows and columns. Each track is fixed, sized to "
-                        + "its content, or weighted to share what is left, and a child can span several.",
-                        context -> {
+                        + "its content, or weighted to share what is left, and a child can span several.", """
+                        final GridPanel form = ui.gridPanel()
+                                .columns(GridLength.auto(), GridLength.weighted(1))
+                                .rows(GridLength.auto(), GridLength.auto(), GridLength.auto())
+                                .setSpacing(6, 4)
+                                .add(ui.label("Name").setAnchor(Anchor.MIDDLE_LEFT), 0, 0)
+                                .add(ui.textBox().setText("Ana"), 0, 1)
+                                .add(ui.label("Quantity").setAnchor(Anchor.MIDDLE_LEFT), 1, 0)
+                                .add(ui.spinner().setRange(1, 64), 1, 1)
+                                // Row 2, column 0, spanning 1 row and 2 columns
+                                .add(ui.button("Order").setAnchor(Anchor.TOP_RIGHT), 2, 0, 1, 2)
+                                .setWidth(220);
+                        panel.add(form);
+                        """, context -> {
                     final ComponentFactory ui = context.ui();
                     final GridPanel lengths = ui.gridPanel()
                             .columns(GridLength.fixed(70), GridLength.auto(), GridLength.weighted(1),
@@ -138,7 +165,23 @@ final class LayoutPages {
                                             LayoutPages.frame(ui, form))));
                 }),
                 new Page(SECTION, "Anchor panel", "Children overlap, and each pins itself to an edge, a corner, the "
-                        + "center, or fills the panel, by its own alignment.", context -> {
+                        + "center, or fills the panel, by its own alignment.", """
+                        // Children overlap, each pinned by its own anchor
+                        final AnchorPanel card = ui.anchorPanel()
+                                .setPadding(6)
+                                .setBackground(Paint.solid(0xFF3A3D43))
+                                .add(ui.label("Title").setAnchor(Anchor.TOP_CENTER))
+                                .add(ui.button("x").setAnchor(Anchor.TOP_RIGHT))
+                                .add(ui.label("v1.0").setAnchor(Anchor.BOTTOM_LEFT))
+                                .add(ui.button("Start").setAnchor(Anchor.CENTER))
+                                .setSize(240, 120);
+                        panel.add(card);
+
+                        // A screen's root often fills the host and centers its content
+                        final AnchorPanel root = ui.anchorPanel()
+                                .add(ui.label("Ready").setAnchor(Anchor.CENTER))
+                                .setAnchor(Anchor.FILL);
+                        """, context -> {
                     final ComponentFactory ui = context.ui();
                     final AnchorPanel corners = ui.anchorPanel().setPadding(4);
                     for (final Anchor anchor : Anchor.values()) {
@@ -161,7 +204,18 @@ final class LayoutPages {
                                             layered.setSize(240, 120)))));
                 }),
                 new Page(SECTION, "Absolute panel", "Places each child at a position you give, at its desired size. "
-                        + "Children can overlap; later ones draw on top.", context -> {
+                        + "Children can overlap; later ones draw on top.", """
+                        final Label marker = ui.label("B");
+                        // Each child sits at the position given, at its desired size; later ones draw on top
+                        final AbsolutePanel board = ui.absolutePanel()
+                                .add(ui.label("A at 10, 10"), 10, 10)
+                                .add(marker, 50, 50)
+                                .setClipChildren(true)
+                                .setSize(300, 120);
+                        final Button move = ui.button("Move B right")
+                                .onEvent(Button.PRESSED, event -> board.move(marker, 90, 50));
+                        panel.add(board).add(move);
+                        """, context -> {
                     final ComponentFactory ui = context.ui();
                     final Component<?> moving = LayoutPages.box(ui, "B", GREEN, 60, 30);
                     final AbsolutePanel board = ui.absolutePanel()
@@ -181,8 +235,21 @@ final class LayoutPages {
                                     Samples.example(ui, "move(child, x, y)", move)));
                 }),
                 new Page(SECTION, "Scroll panel", "Shows part of content larger than itself, with scroll bars that "
-                        + "appear as needed. By default it scrolls only up and down, and the wheel scrolls it.",
-                        context -> {
+                        + "appear as needed. By default it scrolls only up and down, and the wheel scrolls it.", """
+                        final Label status = ui.label("");
+                        final StackPanel lines = ui.stackPanel().setSpacing(2);
+                        for (int i = 1; i <= 40; i++) {
+                            lines.add(ui.label("Entry " + i));
+                        }
+                        // Up and down only by default; AUTO on both axes scrolls sideways too
+                        final ScrollPanel scroll = ui.scrollPanel()
+                                .add(lines)
+                                .setPolicy(ScrollPanel.ScrollPolicy.AUTO, ScrollPanel.ScrollPolicy.AUTO)
+                                .setSize(170, 120)
+                                .onEvent(ScrollPanel.SCROLLED, event -> status.setText("Y " + event.value().scrollY()));
+                        scroll.setScroll(0, 60);
+                        panel.add(scroll).add(status);
+                        """, context -> {
                     final ComponentFactory ui = context.ui();
                     context.watch(ScrollPanel.SCROLLED);
                     final StackPanel lines = ui.stackPanel().setSpacing(2);
@@ -235,7 +302,22 @@ final class LayoutPages {
                                             .setScroll(0, 60))));
                 }),
                 new Page(SECTION, "Spacer", "An empty component. With a weight it pushes the components after it "
-                        + "along; with a size it leaves a fixed gap.", context -> {
+                        + "along; with a size it leaves a fixed gap.", """
+                        // A weighted spacer pushes Help to the right edge
+                        final StackPanel toolbar = ui.stackPanel(Orientation.HORIZONTAL)
+                                .setSpacing(4)
+                                .add(ui.button("New"))
+                                .add(ui.button("Open"))
+                                .add(ui.spacer(), 1)
+                                .add(ui.button("Help"))
+                                .setWidth(360);
+                        // A sized spacer leaves a fixed gap
+                        final StackPanel edit = ui.stackPanel(Orientation.HORIZONTAL)
+                                .add(ui.button("Cut"))
+                                .add(ui.spacer(40, 0))
+                                .add(ui.button("Undo"));
+                        panel.add(toolbar).add(edit);
+                        """, context -> {
                     final ComponentFactory ui = context.ui();
                     return Samples.column(ui,
                             Samples.section(ui, "In a toolbar",
@@ -263,7 +345,21 @@ final class LayoutPages {
                                                     .setHeight(110)))));
                 }),
                 new Page(SECTION, "Margin and padding", "Margin is space outside a component, inside the slot its "
-                        + "parent gives it. Padding is space inside a container, around its children.", context -> {
+                        + "parent gives it. Padding is space inside a container, around its children.", """
+                        // Padding is space inside a container, around its children
+                        final StackPanel card = ui.stackPanel()
+                                .setPadding(8)
+                                .setBackground(Paint.solid(0xFF6A5326))
+                                .add(ui.label("Ana"));
+                        // Margin is space outside a component, inside the slot its parent gives it
+                        final StackPanel row = ui.stackPanel(Orientation.HORIZONTAL)
+                                .add(ui.button("A"))
+                                .add(ui.button("B").setMargin(new Insets(12, 0, 12, 0)))
+                                .add(ui.button("C"));
+                        // 20 units left and right, 6 above and below
+                        card.setPadding(Insets.of(20, 6));
+                        panel.add(card).add(row);
+                        """, context -> {
                     final ComponentFactory ui = context.ui();
                     return Samples.column(ui,
                             Samples.section(ui, "Margin",

@@ -12,14 +12,17 @@ import java.util.function.Function;
  * @param section the sidebar section the page sits under, such as {@code Buttons}
  * @param title the page's name in the sidebar and its heading
  * @param summary one or two sentences under the heading
+ * @param code a short Java snippet that shows how to make and use the control, or an empty string for none
  * @param content builds the page's content each time the page is shown
  */
-public record Page(String section, String title, String summary, Function<PageContext, Component<?>> content) {
+public record Page(String section, String title, String summary, String code,
+        Function<PageContext, Component<?>> content) {
 
     public Page {
         Objects.requireNonNull(section, "section");
         Objects.requireNonNull(title, "title");
         Objects.requireNonNull(summary, "summary");
+        Objects.requireNonNull(code, "code");
         Objects.requireNonNull(content, "content");
     }
 

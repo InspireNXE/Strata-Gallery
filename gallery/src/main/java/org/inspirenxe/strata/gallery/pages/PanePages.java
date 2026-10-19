@@ -37,7 +37,19 @@ final class PanePages {
     static List<Page> pages() {
         return List.of(
                 new Page(SECTION, "Tab bar", "A row of tabs with one selected. The bar only picks a tab; the page "
-                        + "shows the matching content when the selection changes.", context -> {
+                        + "shows the matching content when the selection changes.", """
+                        final Label shown = ui.label("Showing what is for sale.");
+                        final TabBar sides = ui.tabBar()
+                                .addTab("Buy")
+                                .addTab("Sell")
+                                .addTab(ui.tab("History").setEnabled(false).setTooltip(Tooltip.text("Sign in first.")))
+                                .select(0);
+                        // The bar only picks a tab: show the matching content yourself
+                        sides.onEvent(SingleSelection.SELECTED, event -> shown.setText(sides.selectedIndex() == 1
+                                ? "Showing what you have listed."
+                                : "Showing what is for sale."));
+                        panel.add(sides).add(shown);
+                        """, context -> {
                     final ComponentFactory ui = context.ui();
                     final Label shown = ui.label("Showing what is for sale.");
                     final TabBar sides = ui.tabBar()
@@ -80,7 +92,18 @@ final class PanePages {
                                             .setWidth(160))));
                 }),
                 new Page(SECTION, "Expander", "A titled header that shows or hides the content below it. While "
-                        + "collapsed, the content takes no space and no input.", context -> {
+                        + "collapsed, the content takes no space and no input.", """
+                        final Label status = ui.label("");
+                        final Expander filters = ui.expander("Filters")
+                                .setContent(ui.stackPanel()
+                                        .setSpacing(4)
+                                        .add(ui.checkBox("Show sold"))
+                                        .add(ui.checkBox("Only mine")))
+                                .setExpanded(true)
+                                .onEvent(Expander.EXPANDED, event -> status.setText(event.value() ? "Open" : "Closed"));
+                        filters.setWidth(200);
+                        panel.add(filters).add(status);
+                        """, context -> {
                     final ComponentFactory ui = context.ui();
                     context.watch(Expander.EXPAND, Expander.EXPANDED);
                     return Samples.column(ui,
@@ -108,7 +131,17 @@ final class PanePages {
                                                     .setWidth(200))));
                 }),
                 new Page(SECTION, "Split pane", "Two areas with a divider between them that the user drags. The "
-                        + "position is the share of the space the first area gets.", context -> {
+                        + "position is the share of the space the first area gets.", """
+                        final Label status = ui.label("");
+                        final SplitPane split = ui.splitPane(Orientation.HORIZONTAL)
+                                .setFirst(ui.<String>listView().setItems(List.of("Fruit", "Books", "Tools")))
+                                .setSecond(ui.label("Pick a category."))
+                                .setPosition(0.3f)
+                                .setMinSizes(80, 80)
+                                .onEvent(SplitPane.MOVED, event -> status.setText("Divider at " + event.value()));
+                        split.setSize(320, 120);
+                        panel.add(split).add(status);
+                        """, context -> {
                     final ComponentFactory ui = context.ui();
                     context.watch(SplitPane.MOVE, SplitPane.MOVED);
                     return Samples.column(ui,
@@ -136,7 +169,22 @@ final class PanePages {
                                             .setSize(200, 50))));
                 }),
                 new Page(SECTION, "Scroll bar", "A scroll bar on its own, for content that scrolls itself. It is "
-                        + "not focusable until told to be, so the content it scrolls keeps the keys.", context -> {
+                        + "not focusable until told to be, so the content it scrolls keeps the keys.", """
+                        final StackPanel names = ui.stackPanel().setSpacing(2);
+                        for (final String name : List.of("Ana", "Ben", "Cleo", "Dev", "Eli", "Fay", "Gus", "Hana")) {
+                            names.add(ui.label(name));
+                        }
+                        final AbsolutePanel view = ui.absolutePanel()
+                                .setClipChildren(true)
+                                .add(names, 0, 0)
+                                .setSize(140, 60);
+                        // The bar scrolls content that moves itself: 60 units shown out of 100
+                        final ScrollBar bar = ui.scrollBar(Orientation.VERTICAL)
+                                .setExtent(60, 100)
+                                .onEvent(Ranged.CHANGED, event -> view.move(names, 0, (float) -event.value()));
+                        bar.setHeight(60);
+                        panel.add(ui.stackPanel(Orientation.HORIZONTAL).add(view).add(bar));
+                        """, context -> {
                     final ComponentFactory ui = context.ui();
                     return Samples.column(ui,
                             Samples.section(ui, "Orientations",

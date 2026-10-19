@@ -7,6 +7,7 @@ import org.inspirenxe.strata.api.control.button.Button;
 import org.inspirenxe.strata.api.control.collection.ListView;
 import org.inspirenxe.strata.api.control.collection.TreeView;
 import org.inspirenxe.strata.api.control.display.Label;
+import org.inspirenxe.strata.api.control.field.TextArea;
 import org.inspirenxe.strata.api.geometry.Insets;
 import org.inspirenxe.strata.api.layout.Anchor;
 import org.inspirenxe.strata.api.layout.GridLength;
@@ -27,8 +28,8 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 /**
- * The gallery: a sidebar of pages grouped by section, the selected page, and the log of the events its controls
- * fire.
+ * The gallery: a sidebar of pages grouped by section, the selected page, a snippet that shows how to use it, and the
+ * log of the events its controls fire.
  */
 public final class GalleryScreen implements Screen {
     private static final Paint BACKGROUND = Paint.gradient(0xFF1E1F22, 0xFF111214);
@@ -36,6 +37,7 @@ public final class GalleryScreen implements Screen {
     private static final Border PANEL_BORDER = Border.of(0xFF3F4147, 1f);
     private static final int MUTED = 0xFFB5BAC1;
     private static final float SUMMARY_WIDTH = 720f;
+    private static final int USAGE_LINES = 12;
 
     private final List<Page> pages;
     private final Consumer<Screen> open;
@@ -44,6 +46,8 @@ public final class GalleryScreen implements Screen {
     private Label title;
     private Label summary;
     private ScrollPanel body;
+    private Component<?> usagePanel;
+    private TextArea usage;
     private EventLog log;
 
     /**
@@ -94,6 +98,21 @@ public final class GalleryScreen implements Screen {
         this.body = ui.scrollPanel()
                 .setAnchor(Anchor.FILL);
 
+        this.usage = ui.textArea()
+                .setReadOnly(true)
+                .setWrap(false)
+                .setAlignment(HorizontalAlignment.STRETCH, VerticalAlignment.TOP);
+        this.usagePanel = GalleryScreen.panel(ui)
+                .rows(GridLength.auto(), GridLength.auto())
+                .columns(GridLength.weighted(1), GridLength.auto())
+                .setSpacing(4, 4)
+                .add(ui.label("Usage").setStyle(TextStyle.DEFAULT.withBold(true)).setAnchor(Anchor.MIDDLE_LEFT), 0, 0)
+                .add(ui.label("ui is the ComponentFactory passed to Screen.build, and panel is a StackPanel")
+                        .setStyle(TextStyle.DEFAULT.withColor(MUTED))
+                        .setAnchor(Anchor.MIDDLE_RIGHT), 0, 1)
+                .add(this.usage, 1, 0, 1, 2)
+                .setAlignment(HorizontalAlignment.STRETCH, VerticalAlignment.TOP);
+
         final ListView<String> lines = ui.<String>listView(line -> ui.label(line).setAnchor(Anchor.MIDDLE_LEFT))
                 .setRowHeight(16)
                 .setPlaceholder("Use a control above to see the events it fires.")
@@ -111,13 +130,15 @@ public final class GalleryScreen implements Screen {
                 .setAnchor(Anchor.FILL);
 
         final Component<?> page = ui.gridPanel()
-                .rows(GridLength.auto(), GridLength.auto(), GridLength.weighted(1), GridLength.fixed(150))
+                .rows(GridLength.auto(), GridLength.auto(), GridLength.weighted(1), GridLength.auto(),
+                        GridLength.fixed(120))
                 .columns(GridLength.weighted(1))
                 .setSpacing(0, 6)
                 .add(this.title, 0, 0)
                 .add(this.summary, 1, 0)
                 .add(GalleryScreen.panel(ui).add(this.body, 0, 0).setAnchor(Anchor.FILL), 2, 0)
-                .add(logPanel, 3, 0)
+                .add(this.usagePanel, 3, 0)
+                .add(logPanel, 4, 0)
                 .setAnchor(Anchor.FILL);
 
         final Component<?> root = ui.gridPanel()
@@ -136,11 +157,16 @@ public final class GalleryScreen implements Screen {
     }
 
     /**
-     * Shows a page: its heading, a fresh build of its content, and an empty log that listens to it.
+     * Shows a page: its heading, a fresh build of its content, its snippet, and an empty log that listens to it.
      */
     private void show(final Page page) {
         this.title.setText(page.title());
         this.summary.setText(page.summary());
+        final String code = page.code().strip();
+        this.usagePanel.setVisible(!code.isEmpty());
+        // Short snippets get a panel just tall enough; longer ones scroll inside it
+        this.usage.setVisibleLines(Math.clamp(code.lines().count(), 1, USAGE_LINES))
+                .setText(code);
         final PageContext context = new PageContext(this.ui, this.open, this.log::add);
         this.log.clear();
         final StackPanel holder = this.ui.stackPanel()

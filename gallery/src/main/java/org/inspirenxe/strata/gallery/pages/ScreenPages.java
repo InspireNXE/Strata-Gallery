@@ -19,7 +19,25 @@ final class ScreenPages {
         return List.of(
                 new Page(SECTION, "Almura mock-ups", "Almura's Exchange and Store screens, rebuilt with Strata from "
                         + "fake data. They are the reference for what Strata has to support. Each opens over the "
-                        + "gallery; Escape or its close button returns here.", context -> {
+                        + "gallery; Escape or its close button returns here.", """
+                        public final class OrderScreen implements Screen {
+                            @Override
+                            public Component<?> build(final ComponentFactory ui) {
+                                final Label status = ui.label("Ready");
+                                final Button order = ui.button("Order")
+                                        .onEvent(Button.PRESSED, event -> status.setText("Ordered"));
+                                final StackPanel column = ui.stackPanel()
+                                        .setSpacing(4)
+                                        .setPadding(8)
+                                        .add(status)
+                                        .add(order);
+                                return ui.anchorPanel().add(column.setAnchor(Anchor.CENTER)).setAnchor(Anchor.FILL);
+                            }
+                        }
+
+                        // The host shows screens; on Swing, push it onto a StrataPanel's screen stack
+                        host.screens().push(new OrderScreen());
+                        """, context -> {
                     final ComponentFactory ui = context.ui();
                     return Samples.column(ui,
                             Samples.note(ui, context.canOpen()
@@ -28,7 +46,36 @@ final class ScreenPages {
                             AlmuraMocks.buttons(ui, context::open));
                 }),
                 new Page(SECTION, "Custom component", "A row of color swatches written on CustomComponent, the same "
-                        + "extension point the built-in controls use. Click a swatch to select it.", context -> {
+                        + "extension point the built-in controls use. Click a swatch to select it.", """
+                        public final class Swatch extends CustomComponent<Swatch> {
+                            private final int color;
+                            private boolean selected;
+
+                            public Swatch(final ComponentFactory ui, final int color) {
+                                super(ui);
+                                this.color = color;
+                            }
+
+                            @Override
+                            protected Size measure(final MeasureContext context, final float availableWidth,
+                                    final float availableHeight) {
+                                return new Size(14, 14);
+                            }
+
+                            @Override
+                            protected void paint(final Painter painter, final Rect bounds) {
+                                painter.fill(bounds, this.selected ? 0xFFFFFFFF : this.color);
+                            }
+
+                            @Override
+                            protected void onClick(final PointerButtonEvent event) {
+                                this.selected = !this.selected;
+                                event.consume();
+                            }
+                        }
+
+                        panel.add(new Swatch(ui, 0xFFE06C75)).add(new Swatch(ui, 0xFF61AFEF));
+                        """, context -> {
                     final ComponentFactory ui = context.ui();
                     return Samples.column(ui,
                             Samples.example(ui, "Swatches", new Swatches(ui, 0xFFE06C75, 0xFFE5C07B, 0xFF98C379,

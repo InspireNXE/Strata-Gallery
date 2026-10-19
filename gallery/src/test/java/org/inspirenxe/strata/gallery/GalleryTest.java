@@ -42,7 +42,7 @@ class GalleryTest {
     @Test
     void clicksReachTheLog() {
         final Button[] button = new Button[1];
-        final Page page = new Page("Test", "Click", "", context -> button[0] = context.ui().button("Go"));
+        final Page page = new Page("Test", "Click", "", "", context -> button[0] = context.ui().button("Go"));
         final GalleryScreen screen = new GalleryScreen(List.of(page), null, page);
         SwingSnapshot.render(screen, Themes.flat(), 1400, 900, 1.5f,
                 stack -> {

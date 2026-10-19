@@ -26,7 +26,22 @@ final class DisplayPages {
     static List<Page> pages() {
         return List.of(
                 new Page(SECTION, "Label", "Text the user reads but does not edit. A label can wrap, cut itself "
-                        + "short with an ellipsis, mix styles in spans and draw larger or smaller.", context -> {
+                        + "short with an ellipsis, mix styles in spans and draw larger or smaller.", """
+                        final Label title = ui.label("Fresh pears")
+                                .setStyle(TextStyle.DEFAULT.withBold(true))
+                                .setTextScale(1.5f);
+                        final Label note = ui.label("Ana listed three crates of apples at the morning market.")
+                                .setWrap(true)
+                                .setWidth(180);
+                        final Label price = ui.label().setSpans(List.of(
+                                new TextSpan("125.50", TextStyle.DEFAULT.withColor(0xFFE8C547)),
+                                new TextSpan(" per crate from Cleo", TextStyle.DEFAULT)));
+                        final Label seller = ui.label("Sold by a seller with a very long name")
+                                .setOverflow(TextOverflow.ELLIPSIS)
+                                .setWidth(120);
+                        note.setText("Ben bought two crates before noon.");
+                        panel.add(title).add(note).add(price).add(seller);
+                        """, context -> {
                     final ComponentFactory ui = context.ui();
                     final TextStyle gold = TextStyle.DEFAULT.withColor(0xFFE8C547).withBold(true);
                     final TextStyle gray = TextStyle.DEFAULT.withColor(Samples.MUTED);
@@ -64,7 +79,18 @@ final class DisplayPages {
                 }),
                 new Page(SECTION, "Image", "A picture drawn at a size you choose. Stretch scaling covers the bounds, "
                         + "fit scaling keeps the image's aspect ratio and centers it, and the tint multiplies its "
-                        + "colors.", context -> {
+                        + "colors.", """
+                        // The adapter finds the sprite; Swing reads assets/shop/sprites/icon/pear.png
+                        final Image pear = ui.image(SpriteId.of("shop", "icon/pear"))
+                                .setImageSize(32, 32)
+                                .setTooltip("Pears");
+                        // FIT keeps the aspect ratio inside the bounds; the tint multiplies the colors
+                        final Image banner = ui.image(SpriteId.of("shop", "banner"))
+                                .setScaling(Image.Scaling.FIT)
+                                .setTint(0x80FFFFFF)
+                                .setSize(80, 32);
+                        panel.add(pear).add(banner);
+                        """, context -> {
                     final ComponentFactory ui = context.ui();
                     return Samples.column(ui,
                             Samples.section(ui, "Sizes",
@@ -89,7 +115,22 @@ final class DisplayPages {
                 }),
                 new Page(SECTION, "Progress bar", "A bar filled from the left to show how far a value is through its "
                         + "range, with an optional caption. When the length of the work is unknown, it shows a moving "
-                        + "segment instead.", context -> {
+                        + "segment instead.", """
+                        final ProgressBar upload = ui.progressBar()
+                                .setRange(0, 64)
+                                .setValue(40)
+                                .setText("40/64")
+                                .setWidth(160);
+                        // While the length of the work is unknown, a segment moves back and forth
+                        final ProgressBar connecting = ui.progressBar()
+                                .setIndeterminate(true)
+                                .setText("Connecting")
+                                .setWidth(160);
+                        panel.add(upload).add(connecting);
+
+                        // Later, as the work moves on
+                        upload.setValue(48).setText("48/64");
+                        """, context -> {
                     final ComponentFactory ui = context.ui();
                     return Samples.column(ui,
                             Samples.section(ui, "Values",
@@ -116,8 +157,14 @@ final class DisplayPages {
                                             .setWidth(160))));
                 }),
                 new Page(SECTION, "Busy indicator", "Three dots with one lit, stepping back and forth while work is "
-                        + "under way, with an optional caption above. It takes no input and fires no events.",
-                        context -> {
+                        + "under way, with an optional caption above. It takes no input and fires no events.", """
+                        final BusyIndicator loading = ui.busyIndicator("Loading offers")
+                                .setWidth(160);
+                        panel.add(loading);
+
+                        // Hide it when the work is done; a hidden component takes no space
+                        loading.setVisible(false);
+                        """, context -> {
                     final ComponentFactory ui = context.ui();
                     return Samples.column(ui,
                             Samples.section(ui, "Kinds",
@@ -127,7 +174,19 @@ final class DisplayPages {
                                             .setWidth(160))));
                 }),
                 new Page(SECTION, "Separator", "A thin line across or down a panel. A horizontal separator stretches "
-                        + "across its slot and is one unit thick unless told otherwise.", context -> {
+                        + "across its slot and is one unit thick unless told otherwise.", """
+                        panel.add(ui.label("Apples"))
+                                .add(ui.separator().setWidth(160))
+                                .add(ui.label("Oranges"))
+                                .add(ui.separator().setThickness(3).setWidth(160));
+
+                        final StackPanel names = ui.stackPanel(Orientation.HORIZONTAL)
+                                .setSpacing(4)
+                                .add(ui.label("Ana"))
+                                .add(ui.separator(Orientation.VERTICAL).setHeight(12))
+                                .add(ui.label("Ben"));
+                        panel.add(names);
+                        """, context -> {
                     final ComponentFactory ui = context.ui();
                     return Samples.column(ui,
                             Samples.section(ui, "Horizontal",
