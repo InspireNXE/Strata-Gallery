@@ -51,7 +51,6 @@ public final class GalleryScreen implements Screen {
     private static final Paint PANEL = Paint.solid(0xFF2B2D31);
     private static final Border PANEL_BORDER = Border.of(0xFF3F4147, 1f);
     private static final int MUTED = 0xFFB5BAC1;
-    private static final float SUMMARY_WIDTH = 720f;
     private static final int USAGE_LINES = 12;
 
     private final List<Page> pages;
@@ -106,9 +105,6 @@ public final class GalleryScreen implements Screen {
         this.summary = ui.label("")
                 .setStyle(TextStyle.DEFAULT.withColor(MUTED))
                 .setWrap(true)
-                // A grid measures a weighted column's children with the whole grid's width, so the summary would
-                // wrap too late and run off the edge; this cap keeps it inside the page at the default window size
-                .setMaxSize(SUMMARY_WIDTH, Float.POSITIVE_INFINITY)
                 .setAlignment(HorizontalAlignment.STRETCH, VerticalAlignment.TOP);
         this.body = ui.scrollPanel()
                 .setAnchor(Anchor.FILL);

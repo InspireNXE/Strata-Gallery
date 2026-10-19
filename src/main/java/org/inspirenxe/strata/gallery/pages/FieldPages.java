@@ -75,7 +75,8 @@ final class FieldPages {
                                             .setSuggestionProvider(TextBox.SuggestionProvider.words(FieldPages.FRUIT))
                                             .setMaxVisibleSuggestions(5))),
                             Samples.section(ui, "States",
-                                    Samples.example(ui, "Empty", ui.textBox()),
+                                    Samples.example(ui, "Empty, with a placeholder", ui.textBox()
+                                            .setPlaceholder("Search items")),
                                     Samples.example(ui, "Read-only", ui.textBox()
                                             .setReadOnly(true)
                                             .setText("Order 1042")),
