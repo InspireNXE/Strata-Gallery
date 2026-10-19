@@ -1,4 +1,4 @@
-package org.inspirenxe.strata.sandbox.almura;
+package org.inspirenxe.strata.gallery.almura;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;

@@ -1,4 +1,4 @@
-package org.inspirenxe.strata.sandbox.almura;
+package org.inspirenxe.strata.gallery.almura;
 
 import org.inspirenxe.strata.api.visual.Visual;
 import org.inspirenxe.strata.swing.SwingVisuals;

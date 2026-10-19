@@ -1,4 +1,4 @@
-package org.inspirenxe.strata.sandbox;
+package org.inspirenxe.strata.gallery;
 
 import org.inspirenxe.strata.api.ComponentFactory;
 import org.inspirenxe.strata.api.component.Component;
@@ -17,7 +17,7 @@ import org.inspirenxe.strata.api.layout.VerticalAlignment;
 import org.inspirenxe.strata.api.screen.Screen;
 import org.inspirenxe.strata.api.text.TextStyle;
 import org.inspirenxe.strata.api.theme.Paint;
-import org.inspirenxe.strata.sandbox.almura.AlmuraMocks;
+import org.inspirenxe.strata.gallery.almura.AlmuraMocks;
 
 import java.util.function.Consumer;
 

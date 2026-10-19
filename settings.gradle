@@ -1,0 +1,24 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+    }
+}
+
+plugins {
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
+}
+
+rootProject.name = 'Strata-Gallery'
+
+// Strata is not published yet, so the gallery builds against the sibling checkout
+includeBuild('../Strata') {
+    dependencySubstitution {
+        ['api', 'spi', 'core', 'canvas-swing'].each { name ->
+            substitute(module("org.inspirenxe:strata-${name}")).using(project(":${name}"))
+        }
+    }
+}
+
+// Every control on its own page, on the Java2D adapter
+include('gallery')

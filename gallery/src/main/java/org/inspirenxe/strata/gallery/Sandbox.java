@@ -1,7 +1,7 @@
-package org.inspirenxe.strata.sandbox;
+package org.inspirenxe.strata.gallery;
 
 import org.inspirenxe.strata.api.theme.Themes;
-import org.inspirenxe.strata.sandbox.almura.AlmuraMocks;
+import org.inspirenxe.strata.gallery.almura.AlmuraMocks;
 import org.inspirenxe.strata.swing.StrataPanel;
 import org.inspirenxe.strata.swing.SwingTextMetrics;
 import org.inspirenxe.strata.swing.SwingPlatform;

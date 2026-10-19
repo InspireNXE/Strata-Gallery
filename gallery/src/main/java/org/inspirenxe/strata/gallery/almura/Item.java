@@ -1,4 +1,4 @@
-package org.inspirenxe.strata.sandbox.almura;
+package org.inspirenxe.strata.gallery.almura;
 
 import org.inspirenxe.strata.api.component.Tooltip;
 import org.inspirenxe.strata.api.text.TextSpan;

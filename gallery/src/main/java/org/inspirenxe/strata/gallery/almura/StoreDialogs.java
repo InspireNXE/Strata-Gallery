@@ -1,4 +1,4 @@
-package org.inspirenxe.strata.sandbox.almura;
+package org.inspirenxe.strata.gallery.almura;
 
 import org.inspirenxe.strata.api.ComponentFactory;
 import org.inspirenxe.strata.api.component.Component;
@@ -15,7 +15,7 @@ import org.inspirenxe.strata.api.layout.GridPanel;
 import org.inspirenxe.strata.api.layout.HorizontalAlignment;
 import org.inspirenxe.strata.api.layout.Orientation;
 import org.inspirenxe.strata.api.layout.VerticalAlignment;
-import org.inspirenxe.strata.sandbox.almura.StoreData.StoreItem;
+import org.inspirenxe.strata.gallery.almura.StoreData.StoreItem;
 
 import java.math.BigDecimal;
 import java.util.Optional;

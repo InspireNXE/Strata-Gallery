@@ -1,4 +1,4 @@
-package org.inspirenxe.strata.sandbox.almura;
+package org.inspirenxe.strata.gallery.almura;
 
 import org.inspirenxe.strata.api.ComponentFactory;
 import org.inspirenxe.strata.api.component.Component;
@@ -26,9 +26,9 @@ import org.inspirenxe.strata.api.screen.ScreenHandle;
 import org.inspirenxe.strata.api.text.TextOverflow;
 import org.inspirenxe.strata.api.theme.Border;
 import org.inspirenxe.strata.api.theme.Paint;
-import org.inspirenxe.strata.sandbox.almura.ExchangeData.Listing;
-import org.inspirenxe.strata.sandbox.almura.ExchangeData.Sort;
-import org.inspirenxe.strata.sandbox.almura.ExchangeData.Stock;
+import org.inspirenxe.strata.gallery.almura.ExchangeData.Listing;
+import org.inspirenxe.strata.gallery.almura.ExchangeData.Sort;
+import org.inspirenxe.strata.gallery.almura.ExchangeData.Stock;
 
 import java.math.BigDecimal;
 import java.util.List;

@@ -1,4 +1,4 @@
-package org.inspirenxe.strata.sandbox;
+package org.inspirenxe.strata.gallery;
 
 import org.inspirenxe.strata.api.ComponentFactory;
 import org.inspirenxe.strata.api.component.Component;
