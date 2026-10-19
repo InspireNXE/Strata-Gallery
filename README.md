@@ -1,10 +1,10 @@
 # Strata Gallery
 
-Every [Strata](../Strata) control on a page of its own, running on Strata's Java2D adapter. Pick a control in the sidebar to see its kinds and states, try it, and watch the events it fires in the log under the page. Requests (the events a handler can refuse) show with a question mark and the value asked for; reports show the change.
+Every [Strata](../Strata) control on a page of its own, running on Strata's Java2D adapter from [Strata-Swing](../Strata-Swing). Pick a control in the sidebar to see its kinds and states, try it, and watch the events it fires in the log under the page. Requests (the events a handler can refuse) show with a question mark and the value asked for; reports show the change.
 
 The sidebar follows the packages the controls live in: Display, Buttons, Fields, Collections, Menus, Panes, Windows and Layout. The Screens section holds mock-ups of Almura's Exchange and Store screens, which are the reference for what Strata has to support, and a component written from scratch on `CustomComponent`.
 
-Pages use the API only, as a mod or game would. The gallery builds against the Strata checkout beside it at `../Strata`, so check the two out side by side. Nothing is published yet.
+Pages use the API only, as a mod or game would. The gallery builds against the Strata and Strata-Swing checkouts beside it, at `../Strata` and `../Strata-Swing`, so check all three out side by side. Nothing is published yet.
 
 Building needs JDK 25.
 
