@@ -1,0 +1,3 @@
+// The gallery itself is the gallery project. This root script exists so that IDEs importing the build treat this
+// directory, and not gallery/, as the project's root.
+description = 'A gallery of every Strata control, running on the Java2D adapter.'
