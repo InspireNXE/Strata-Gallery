@@ -24,3 +24,7 @@ Without a display, render every page to a PNG, or the mock-ups in a dozen states
 ## Adding a page
 
 Each section is a class in `org.inspirenxe.strata.gallery.pages` whose `pages()` returns one `Page` per control: a section, a title, a short summary and a function that builds the content from a `PageContext`. `Samples` has the captioned examples, rows and sample data the pages share. The log hears every attribute event (`Toggle`, `Ranged`, `SingleSelection` and the rest) on its own. Call `context.watch` for a control's own events, and `context.log` for events from overlays such as menus and dialogs, which sit outside the page.
+
+## License
+
+Strata Gallery is released under the Apache License, Version 2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
