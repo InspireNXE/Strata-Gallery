@@ -23,9 +23,7 @@ includeBuild('../Strata') {
 // The Java2D/Swing adapter, from the Strata-Swing checkout beside this one
 includeBuild('../Strata-Swing') {
     dependencySubstitution {
-        substitute(module('org.inspirenxe:strata-canvas-swing')).using(project(':canvas-swing'))
+        substitute(module('org.inspirenxe:strata-canvas-swing')).using(project(':'))
     }
 }
 
-// Every control on its own page, on the Java2D adapter
-include('gallery')

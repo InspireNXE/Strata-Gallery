@@ -9,14 +9,14 @@ Pages use the API only, as a mod or game would. The gallery builds against the S
 Building needs JDK 25.
 
 ```bash
-./gradlew :gallery:run
+./gradlew run
 ```
 
 Without a display, render every page to a PNG, or the mock-ups in a dozen states:
 
 ```bash
-./gradlew :gallery:run --args="--snapshot snapshots"
-./gradlew :gallery:run --args="--mocks snapshots/mocks"
+./gradlew run --args="--snapshot snapshots"
+./gradlew run --args="--mocks snapshots/mocks"
 ```
 
 `./gradlew build` also runs a test that renders every page.
