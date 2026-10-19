@@ -1,4 +1,4 @@
-package org.inspirenxe.strata.gallery;
+package org.inspirenxe.strata.gallery.pages;
 
 import org.inspirenxe.strata.api.ComponentFactory;
 import org.inspirenxe.strata.api.event.input.PointerButtonEvent;

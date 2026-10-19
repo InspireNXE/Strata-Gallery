@@ -80,7 +80,7 @@ final class ExchangeData {
         this.mine = new ArrayList<>();
         this.inventory = new ArrayList<>();
         final Random random = new Random(1337);
-        final String[] sellers = {"Dockter", "Grinch", "Zidane", "Mumfrey", "Steve", "Alex", "Notch"};
+        final String[] sellers = {"Dockter", "Grinch", "Zidane", "Mumfrey", "Cleo", "Dev", "Eli"};
         for (int i = 0; i < 34; i++) {
             final Item item = Item.ALL.get(random.nextInt(Item.ALL.size()));
             final long quantity = i == 3 ? 2_500_000L : 1 + random.nextInt(item.maxStack() * 4);

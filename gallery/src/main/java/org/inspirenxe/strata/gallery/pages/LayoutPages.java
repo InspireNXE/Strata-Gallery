@@ -1,0 +1,346 @@
+package org.inspirenxe.strata.gallery.pages;
+
+import org.inspirenxe.strata.api.ComponentFactory;
+import org.inspirenxe.strata.api.component.Component;
+import org.inspirenxe.strata.api.control.button.Button;
+import org.inspirenxe.strata.api.geometry.Insets;
+import org.inspirenxe.strata.api.layout.AbsolutePanel;
+import org.inspirenxe.strata.api.layout.Anchor;
+import org.inspirenxe.strata.api.layout.AnchorPanel;
+import org.inspirenxe.strata.api.layout.GridLength;
+import org.inspirenxe.strata.api.layout.GridPanel;
+import org.inspirenxe.strata.api.layout.HorizontalAlignment;
+import org.inspirenxe.strata.api.layout.Orientation;
+import org.inspirenxe.strata.api.layout.ScrollPanel;
+import org.inspirenxe.strata.api.layout.StackPanel;
+import org.inspirenxe.strata.api.layout.VerticalAlignment;
+import org.inspirenxe.strata.api.theme.Border;
+import org.inspirenxe.strata.api.theme.Paint;
+import org.inspirenxe.strata.gallery.Page;
+
+import java.util.List;
+
+/**
+ * The Layout section: the panels that place components, the spacer, and margin and padding. Colored panels stand
+ * in for content so each slot shows.
+ */
+final class LayoutPages {
+    private static final String SECTION = "Layout";
+    private static final Paint FRAME = Paint.solid(0xFF1E1F22);
+    private static final Paint SLOT = Paint.solid(0xFF3A3D43);
+    private static final Paint BLUE = Paint.solid(0xFF2F4A6E);
+    private static final Paint GREEN = Paint.solid(0xFF2E5A45);
+    private static final Paint PURPLE = Paint.solid(0xFF4E3A6A);
+    private static final Paint AMBER = Paint.solid(0xFF6A5326);
+    private static final Border OUTLINE = Border.of(0xFF5A5E66, 1f);
+
+    private LayoutPages() {
+    }
+
+    static List<Page> pages() {
+        return List.of(
+                new Page(SECTION, "Stack panel", "Lays its children out in a line, top to bottom or left to right. "
+                        + "Weighted children share the room the others leave.", context -> {
+                    final ComponentFactory ui = context.ui();
+                    return Samples.column(ui,
+                            Samples.section(ui, "Orientations and spacing",
+                                    Samples.example(ui, "Vertical, spacing 4", LayoutPages.frame(ui, ui.stackPanel()
+                                            .setSpacing(4)
+                                            .add(LayoutPages.box(ui, "One", BLUE, 80, 22))
+                                            .add(LayoutPages.box(ui, "Two", GREEN, 80, 22))
+                                            .add(LayoutPages.box(ui, "Three", PURPLE, 80, 22)))),
+                                    Samples.example(ui, "Horizontal, spacing 0", LayoutPages.frame(ui,
+                                            ui.stackPanel(Orientation.HORIZONTAL)
+                                                    .add(LayoutPages.box(ui, "One", BLUE, 50, 30))
+                                                    .add(LayoutPages.box(ui, "Two", GREEN, 50, 30))
+                                                    .add(LayoutPages.box(ui, "Three", PURPLE, 50, 30)))),
+                                    Samples.example(ui, "Child alignment in a column", LayoutPages.frame(ui,
+                                            ui.stackPanel()
+                                                    .setSpacing(4)
+                                                    .add(LayoutPages.box(ui, "Left", BLUE, 60, 20))
+                                                    .add(LayoutPages.box(ui, "Center", GREEN, 60, 20)
+                                                            .setAnchor(Anchor.TOP_CENTER))
+                                                    .add(LayoutPages.box(ui, "Right", PURPLE, 60, 20)
+                                                            .setAnchor(Anchor.TOP_RIGHT))
+                                                    .add(LayoutPages.box(ui, "Stretch", AMBER, 60, 20)
+                                                            .setAlignment(HorizontalAlignment.STRETCH,
+                                                                    VerticalAlignment.TOP))
+                                                    .setWidth(200)))),
+                            Samples.section(ui, "Sharing the room",
+                                    Samples.example(ui, "Weights 1, 2 and 1 in 320", LayoutPages.frame(ui,
+                                            ui.stackPanel(Orientation.HORIZONTAL)
+                                                    .setSpacing(4)
+                                                    .add(LayoutPages.fill(ui, "1", BLUE), 1)
+                                                    .add(LayoutPages.fill(ui, "2", GREEN), 2)
+                                                    .add(LayoutPages.fill(ui, "1", PURPLE), 1)
+                                                    .setSize(320, 30))),
+                                    Samples.example(ui, "Fixed, then weight 1", LayoutPages.frame(ui,
+                                            ui.stackPanel(Orientation.HORIZONTAL)
+                                                    .setSpacing(4)
+                                                    .add(LayoutPages.box(ui, "60", BLUE, 60, 30))
+                                                    .add(LayoutPages.fill(ui, "The rest", GREEN), 1)
+                                                    .setSize(220, 30)))),
+                            Samples.section(ui, "Spread",
+                                    Samples.example(ui, "Equal gaps between and none at the ends",
+                                            LayoutPages.frame(ui,
+                                            ui.stackPanel(Orientation.HORIZONTAL)
+                                                    .setSpread(true)
+                                                    .add(ui.button("Back"))
+                                                    .add(ui.button("Skip"))
+                                                    .add(ui.button("Next"))
+                                                    .setWidth(220)))));
+                }),
+                new Page(SECTION, "Grid panel", "Places children in rows and columns. Each track is fixed, sized to "
+                        + "its content, or weighted to share what is left, and a child can span several.",
+                        context -> {
+                    final ComponentFactory ui = context.ui();
+                    final GridPanel lengths = ui.gridPanel()
+                            .columns(GridLength.fixed(70), GridLength.auto(), GridLength.weighted(1),
+                                    GridLength.weighted(2))
+                            .rows(GridLength.fixed(30))
+                            .setSpacing(4, 4)
+                            .add(LayoutPages.fill(ui, "fixed 70", BLUE), 0, 0)
+                            .add(LayoutPages.box(ui, "auto: its content", GREEN, 110, 30), 0, 1)
+                            .add(LayoutPages.fill(ui, "weighted 1", PURPLE), 0, 2)
+                            .add(LayoutPages.fill(ui, "weighted 2", AMBER), 0, 3)
+                            .setWidth(560);
+                    final GridPanel spans = ui.gridPanel()
+                            .columns(GridLength.fixed(80), GridLength.weighted(1), GridLength.weighted(1))
+                            .rows(GridLength.fixed(24), GridLength.weighted(1), GridLength.weighted(1),
+                                    GridLength.fixed(20))
+                            .setSpacing(4, 4)
+                            .add(LayoutPages.fill(ui, "Header, 3 columns", BLUE), 0, 0, 1, 3)
+                            .add(LayoutPages.fill(ui, "Side, 2 rows", GREEN), 1, 0, 2, 1)
+                            .add(LayoutPages.fill(ui, "Cell", SLOT), 1, 1)
+                            .add(LayoutPages.fill(ui, "Cell", SLOT), 1, 2)
+                            .add(LayoutPages.fill(ui, "Wide cell, 2 columns", PURPLE), 2, 1, 1, 2)
+                            .add(LayoutPages.fill(ui, "Footer, 3 columns", AMBER), 3, 0, 1, 3)
+                            .setSize(320, 150);
+                    final GridPanel form = ui.gridPanel()
+                            .columns(GridLength.auto(), GridLength.weighted(1))
+                            .rows(GridLength.auto(), GridLength.auto(), GridLength.auto())
+                            .setSpacing(6, 4)
+                            .add(ui.label("Name").setAnchor(Anchor.MIDDLE_LEFT), 0, 0)
+                            .add(ui.textBox().setText("Ana")
+                                    .setAlignment(HorizontalAlignment.STRETCH, VerticalAlignment.TOP), 0, 1)
+                            .add(ui.label("Quantity").setAnchor(Anchor.MIDDLE_LEFT), 1, 0)
+                            .add(ui.textBox().setText("3")
+                                    .setAlignment(HorizontalAlignment.STRETCH, VerticalAlignment.TOP), 1, 1)
+                            .add(ui.button("Order").setAnchor(Anchor.TOP_RIGHT), 2, 0, 1, 2)
+                            .setWidth(220);
+                    return Samples.column(ui,
+                            Samples.section(ui, "Column lengths",
+                                    Samples.example(ui, "fixed(70), auto(), weighted(1), weighted(2) in 560",
+                                            LayoutPages.frame(ui, lengths))),
+                            Samples.section(ui, "Spans",
+                                    Samples.example(ui, "Row and column spans", LayoutPages.frame(ui, spans)),
+                                    Samples.example(ui, "A form: auto labels, weighted fields",
+                                            LayoutPages.frame(ui, form))));
+                }),
+                new Page(SECTION, "Anchor panel", "Children overlap, and each pins itself to an edge, a corner, the "
+                        + "center, or fills the panel, by its own alignment.", context -> {
+                    final ComponentFactory ui = context.ui();
+                    final AnchorPanel corners = ui.anchorPanel().setPadding(4);
+                    for (final Anchor anchor : Anchor.values()) {
+                        if (anchor != Anchor.FILL) {
+                            corners.add(LayoutPages.box(ui, anchor.name(), BLUE, 92, 18).setAnchor(anchor));
+                        }
+                    }
+                    final AnchorPanel layered = ui.anchorPanel()
+                            .setPadding(6)
+                            .add(LayoutPages.fill(ui, "", SLOT))
+                            .add(ui.label("Title").setAnchor(Anchor.TOP_CENTER))
+                            .add(ui.button("x").setAnchor(Anchor.TOP_RIGHT))
+                            .add(ui.label("v1.0").setAnchor(Anchor.BOTTOM_LEFT))
+                            .add(LayoutPages.box(ui, "Centered", GREEN, 80, 30).setAnchor(Anchor.CENTER));
+                    return Samples.column(ui,
+                            Samples.section(ui, "Anchors",
+                                    Samples.example(ui, "Every anchor but FILL", LayoutPages.frame(ui,
+                                            corners.setSize(340, 120))),
+                                    Samples.example(ui, "A FILL backdrop under pinned parts", LayoutPages.frame(ui,
+                                            layered.setSize(240, 120)))));
+                }),
+                new Page(SECTION, "Absolute panel", "Places each child at a position you give, at its desired size. "
+                        + "Children can overlap; later ones draw on top.", context -> {
+                    final ComponentFactory ui = context.ui();
+                    final Component<?> moving = LayoutPages.box(ui, "B", GREEN, 60, 30);
+                    final AbsolutePanel board = ui.absolutePanel()
+                            .add(LayoutPages.box(ui, "A at 10, 10", BLUE, 90, 30), 10, 10)
+                            .add(moving, 50, 50)
+                            .add(LayoutPages.box(ui, "C at 90, 60", PURPLE, 90, 30), 90, 60)
+                            .setSize(300, 120);
+                    final float[] x = {50};
+                    final Button move = ui.button("Move B right").onEvent(Button.PRESSED, event -> {
+                        x[0] = x[0] >= 210 ? 10 : x[0] + 40;
+                        board.move(moving, x[0], 50);
+                    });
+                    return Samples.column(ui,
+                            Samples.section(ui, "Free placement",
+                                    Samples.example(ui, "B sits under C, which was added later",
+                                            LayoutPages.frame(ui, board)),
+                                    Samples.example(ui, "move(child, x, y)", move)));
+                }),
+                new Page(SECTION, "Scroll panel", "Shows part of content larger than itself, with scroll bars that "
+                        + "appear as needed. By default it scrolls only up and down, and the wheel scrolls it.",
+                        context -> {
+                    final ComponentFactory ui = context.ui();
+                    context.watch(ScrollPanel.SCROLLED);
+                    final StackPanel lines = ui.stackPanel().setSpacing(2);
+                    for (int i = 0; i < 16; i++) {
+                        lines.add(ui.label("Entry " + (i + 1) + " from " + Samples.PEOPLE.get(i % 10)));
+                    }
+                    final GridPanel wide = ui.gridPanel().setSpacing(4, 4);
+                    final Paint[] paints = {BLUE, GREEN, PURPLE, AMBER};
+                    for (int row = 0; row < 6; row++) {
+                        wide.addRow(GridLength.auto());
+                    }
+                    for (int column = 0; column < 8; column++) {
+                        wide.addColumn(GridLength.auto());
+                    }
+                    for (int row = 0; row < 6; row++) {
+                        for (int column = 0; column < 8; column++) {
+                            wide.add(LayoutPages.box(ui, row + "," + column, paints[(row + column) % 4], 50, 30),
+                                    row, column);
+                        }
+                    }
+                    final StackPanel few = ui.stackPanel().setSpacing(2)
+                            .add(ui.label("Only two lines,"))
+                            .add(ui.label("but the bars always show."));
+                    return Samples.column(ui,
+                            Samples.section(ui, "Policies",
+                                    Samples.example(ui, "Default: up and down only", ui.scrollPanel()
+                                            .add(lines)
+                                            .setPadding(4)
+                                            .setBackground(SLOT)
+                                            .setSize(170, 120)),
+                                    Samples.example(ui, "Both ways, AUTO", ui.scrollPanel()
+                                            .add(wide)
+                                            .setPolicy(ScrollPanel.ScrollPolicy.AUTO, ScrollPanel.ScrollPolicy.AUTO)
+                                            .setPadding(4)
+                                            .setBackground(SLOT)
+                                            .setSize(240, 120)),
+                                    Samples.example(ui, "ALWAYS", ui.scrollPanel()
+                                            .add(few)
+                                            .setPolicy(ScrollPanel.ScrollPolicy.ALWAYS,
+                                                    ScrollPanel.ScrollPolicy.ALWAYS)
+                                            .setPadding(4)
+                                            .setBackground(SLOT)
+                                            .setSize(170, 120))),
+                            Samples.section(ui, "From code",
+                                    Samples.example(ui, "setScroll(0, 60) when built", ui.scrollPanel()
+                                            .add(LayoutPages.copy(ui))
+                                            .setPadding(4)
+                                            .setBackground(SLOT)
+                                            .setSize(170, 120)
+                                            .setScroll(0, 60))));
+                }),
+                new Page(SECTION, "Spacer", "An empty component. With a weight it pushes the components after it "
+                        + "along; with a size it leaves a fixed gap.", context -> {
+                    final ComponentFactory ui = context.ui();
+                    return Samples.column(ui,
+                            Samples.section(ui, "In a toolbar",
+                                    Samples.example(ui, "A weighted spacer pushes Help to the right",
+                                            LayoutPages.frame(ui, ui.stackPanel(Orientation.HORIZONTAL)
+                                                    .setSpacing(4)
+                                                    .add(ui.button("New"))
+                                                    .add(ui.button("Open"))
+                                                    .add(ui.spacer(), 1)
+                                                    .add(ui.button("Help"))
+                                                    .setWidth(360))),
+                                    Samples.example(ui, "A fixed gap of 40", LayoutPages.frame(ui,
+                                            ui.stackPanel(Orientation.HORIZONTAL)
+                                                    .setSpacing(4)
+                                                    .add(ui.button("Cut"))
+                                                    .add(ui.button("Copy"))
+                                                    .add(ui.spacer(40, 0))
+                                                    .add(ui.button("Undo"))))),
+                            Samples.section(ui, "In a column",
+                                    Samples.example(ui, "Two weighted spacers center a box", LayoutPages.frame(ui,
+                                            ui.stackPanel()
+                                                    .add(ui.spacer(), 1)
+                                                    .add(LayoutPages.box(ui, "Middle", GREEN, 80, 24))
+                                                    .add(ui.spacer(), 1)
+                                                    .setHeight(110)))));
+                }),
+                new Page(SECTION, "Margin and padding", "Margin is space outside a component, inside the slot its "
+                        + "parent gives it. Padding is space inside a container, around its children.", context -> {
+                    final ComponentFactory ui = context.ui();
+                    return Samples.column(ui,
+                            Samples.section(ui, "Margin",
+                                    Samples.example(ui, "None", LayoutPages.frame(ui, ui.stackPanel()
+                                            .add(LayoutPages.box(ui, "Child", BLUE, 90, 30)))),
+                                    Samples.example(ui, "10 all round", LayoutPages.frame(ui, ui.stackPanel()
+                                            .add(LayoutPages.box(ui, "Child", BLUE, 90, 30).setMargin(10)))),
+                                    Samples.example(ui, "Left 30, top 4", LayoutPages.frame(ui, ui.stackPanel()
+                                            .add(LayoutPages.box(ui, "Child", BLUE, 90, 30)
+                                                    .setMargin(new Insets(30, 4, 0, 0))))),
+                                    Samples.example(ui, "Between siblings", LayoutPages.frame(ui,
+                                            ui.stackPanel(Orientation.HORIZONTAL)
+                                                    .add(LayoutPages.box(ui, "A", BLUE, 40, 30))
+                                                    .add(LayoutPages.box(ui, "B", GREEN, 40, 30).setMargin(
+                                                            new Insets(12, 0, 12, 0)))
+                                                    .add(LayoutPages.box(ui, "C", PURPLE, 40, 30))))),
+                            Samples.section(ui, "Padding",
+                                    Samples.example(ui, "None", ui.stackPanel()
+                                            .setBackground(AMBER)
+                                            .add(LayoutPages.box(ui, "Child", BLUE, 90, 30))),
+                                    Samples.example(ui, "8 all round", ui.stackPanel()
+                                            .setBackground(AMBER)
+                                            .setPadding(8)
+                                            .add(LayoutPages.box(ui, "Child", BLUE, 90, 30))),
+                                    Samples.example(ui, "20 across, 6 down", ui.stackPanel()
+                                            .setBackground(AMBER)
+                                            .setPadding(Insets.of(20, 6))
+                                            .add(LayoutPages.box(ui, "Child", BLUE, 90, 30))),
+                                    Samples.example(ui, "Padding 8 and a child margin 8", ui.stackPanel()
+                                            .setBackground(AMBER)
+                                            .setPadding(8)
+                                            .add(LayoutPages.box(ui, "Child", BLUE, 90, 30).setMargin(8)))),
+                            Samples.note(ui, "The amber background covers the padding but not the child's "
+                                    + "margin. Dark frames show the slot each example gets."));
+                }));
+    }
+
+    /**
+     * A dark outlined frame around an example, so the edges of the slot it gets show.
+     */
+    private static Component<?> frame(final ComponentFactory ui, final Component<?> content) {
+        return ui.stackPanel()
+                .setBackground(FRAME)
+                .setBorder(OUTLINE)
+                .setPadding(1)
+                .add(content);
+    }
+
+    /**
+     * A colored panel of a fixed size with a centered caption.
+     */
+    private static AnchorPanel box(final ComponentFactory ui, final String caption, final Paint paint,
+            final float width, final float height) {
+        return ui.anchorPanel()
+                .setBackground(paint)
+                .add(ui.label(caption).setAnchor(Anchor.CENTER))
+                .setSize(width, height);
+    }
+
+    /**
+     * A colored panel that fills its slot, with a centered caption.
+     */
+    private static AnchorPanel fill(final ComponentFactory ui, final String caption, final Paint paint) {
+        return ui.anchorPanel()
+                .setBackground(paint)
+                .add(ui.label(caption).setAnchor(Anchor.CENTER))
+                .setAnchor(Anchor.FILL);
+    }
+
+    /**
+     * Some numbered lines for a scroll panel.
+     */
+    private static Component<?> copy(final ComponentFactory ui) {
+        final StackPanel lines = ui.stackPanel().setSpacing(2);
+        for (int i = 0; i < 16; i++) {
+            lines.add(ui.label("Line " + (i + 1)));
+        }
+        return lines;
+    }
+}

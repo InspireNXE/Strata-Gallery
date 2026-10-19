@@ -21,8 +21,17 @@ dependencies {
     // Pages are written against the API only; the Java2D adapter shows them
     implementation("org.inspirenxe:strata-api:${strata_version}")
     implementation("org.inspirenxe:strata-canvas-swing:${strata_version}")
+
+    testImplementation(platform("org.junit:junit-bom:${junit_version}"))
+    testImplementation('org.junit.jupiter:junit-jupiter')
+    testRuntimeOnly('org.junit.platform:junit-platform-launcher')
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+    systemProperty('java.awt.headless', 'true')
 }
 
 application {
-    mainClass = 'org.inspirenxe.strata.gallery.Sandbox'
+    mainClass = 'org.inspirenxe.strata.gallery.Gallery'
 }
