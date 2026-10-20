@@ -163,6 +163,10 @@ final class MinecraftLook {
                 .textStyle(TabBar.STYLE_TEXT, text.withColor(0xFFA0A0A0))
                 .textStyle(TabBar.STYLE_TEXT_SELECTED, text)
                 .textStyle(TabBar.STYLE_TEXT_DISABLED, text.withColor(0xFF606060))
+                // widget/tab is empty in its top 4 pixels and edged in the next 2, so its inside starts 6 down;
+                // both paddings are 10 tall, so tabs are a line plus 10, nearer vanilla's 24
+                .insets(TabBar.STYLE_PADDING, new Insets(8f, 7f, 8f, 3f))
+                .insets(TabBar.STYLE_PADDING_SELECTED, new Insets(8f, 5f, 8f, 5f))
                 .paint(ProgressBar.STYLE_TRACK, Paint.solid(0xFF000000))
                 .paint(ProgressBar.STYLE_FILL, Paint.solid(0xFF008200))
                 .textStyle(ProgressBar.STYLE_TEXT, text)
@@ -213,6 +217,9 @@ final class MinecraftLook {
                 .paint(Window.STYLE_GRIP, Paint.solid(0xFFA0A0A0))
                 .paint(Window.STYLE_GRIP_HOVERED, Paint.solid(0xFFFFFFFF))
                 .paint(Overlays.STYLE_BACKDROP, Paint.solid(0x60000000))
+                // The advancement frame as a nine-slice; toast/advancement itself has no .mcmeta and would stretch
+                .paint(Overlays.STYLE_TOAST, this.paint("toast/now_playing", Insets.of(4f)))
+                .textStyle(Overlays.STYLE_TOAST_TEXT, TextStyle.DEFAULT.withColor(0xFFFFFFFF))
                 .build();
     }
 
