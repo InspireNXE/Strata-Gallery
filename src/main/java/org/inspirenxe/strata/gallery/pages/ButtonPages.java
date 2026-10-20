@@ -18,6 +18,7 @@ package org.inspirenxe.strata.gallery.pages;
 import org.inspirenxe.strata.api.ComponentFactory;
 import org.inspirenxe.strata.api.control.attribute.item.SingleSelection;
 import org.inspirenxe.strata.api.control.button.Button;
+import org.inspirenxe.strata.api.control.button.CheckState;
 import org.inspirenxe.strata.api.control.button.RadioGroup;
 import org.inspirenxe.strata.gallery.Page;
 
@@ -90,8 +91,8 @@ final class ButtonPages {
                                             .setItems(List.of("Easy", "Hard"))
                                             .setEnabled(false))));
                 }),
-                new Page(SECTION, "Check box", "An on and off choice with a caption. Clicking the caption toggles it "
-                        + "too.", """
+                new Page(SECTION, "Check box", "A choice with a caption that is checked, empty, or mixed when it "
+                        + "stands for several others that disagree. Clicking the caption changes it too.", """
                         final Label status = ui.label("");
                         final CheckBox prices = ui.checkBox("Show prices")
                                 .setSelected(true)
@@ -99,16 +100,24 @@ final class ButtonPages {
                                         ? "Prices shown"
                                         : "Prices hidden"));
                         final CheckBox admin = ui.checkBox("Admin only").setEnabled(false);
-                        panel.add(prices).add(admin).add(status);
+
+                        // A box for several others shows mixed while they disagree
+                        final CheckBox all = ui.checkBox("All categories").setState(CheckState.MIXED);
+                        all.onEvent(CheckBox.CHANGED, event -> status.setText("All: " + event.value()));
+                        panel.add(prices).add(admin).add(all).add(status);
                         """, context -> {
                     final ComponentFactory ui = context.ui();
                     return Samples.column(ui,
                             Samples.section(ui, "States",
                                     Samples.example(ui, "Off", ui.checkBox("Show prices")),
                                     Samples.example(ui, "On", ui.checkBox("Show sold").setSelected(true)),
+                                    Samples.example(ui, "Mixed", ui.checkBox("All categories").setState(CheckState.MIXED)),
                                     Samples.example(ui, "Disabled", ui.checkBox("Admin only").setEnabled(false)),
                                     Samples.example(ui, "Disabled and on", ui.checkBox("Required").setSelected(true)
-                                            .setEnabled(false))));
+                                            .setEnabled(false))),
+                            Samples.section(ui, "Choosing mixed",
+                                    Samples.example(ui, "Clicks cycle empty, checked, mixed",
+                                            ui.checkBox("Partial refunds").setAllowsMixed(true))));
                 }),
                 new Page(SECTION, "Radio button", "One choice out of a few. A radio group keeps one of its buttons "
                         + "selected and reports the change; it is not a component, so its events are logged here by "
