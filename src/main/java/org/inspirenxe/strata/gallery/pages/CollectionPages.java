@@ -16,6 +16,8 @@
 package org.inspirenxe.strata.gallery.pages;
 
 import org.inspirenxe.strata.api.ComponentFactory;
+import org.inspirenxe.strata.api.Strata;
+import org.inspirenxe.strata.api.appearance.Appearance;
 import org.inspirenxe.strata.api.component.Component;
 import org.inspirenxe.strata.api.component.Tooltip;
 import org.inspirenxe.strata.api.control.collection.ComboBox;
@@ -27,6 +29,7 @@ import org.inspirenxe.strata.api.control.collection.TreeView;
 import org.inspirenxe.strata.api.layout.Anchor;
 import org.inspirenxe.strata.api.layout.GridLength;
 import org.inspirenxe.strata.api.layout.Orientation;
+import org.inspirenxe.strata.api.text.Text;
 import org.inspirenxe.strata.api.text.TextStyle;
 import org.inspirenxe.strata.gallery.Page;
 
@@ -66,6 +69,15 @@ final class CollectionPages {
                     new FileEntry("field.png", List.of()))),
             new FileEntry("readme.txt", List.of()));
 
+    static {
+        // Fruit shows with its icon, name and stock wherever a control has no cell factory for it
+        Strata.appearances().register(Fruit.class, Appearance.<Fruit>builder()
+                .icon(fruit -> Samples.icon(fruit.color()))
+                .name(fruit -> Text.of(fruit.name()))
+                .tooltip(fruit -> Tooltip.text(fruit.stock() + " in stock"))
+                .build());
+    }
+
     private CollectionPages() {
     }
 
@@ -85,6 +97,14 @@ final class CollectionPages {
                         people.onEvent(Activatable.ACTIVATED, event -> status.setText("Opened "
                                 + people.items().get(event.value())));
                         panel.add(people).add(status);
+
+                        // A list with no cell factory shows items through their appearance, registered once
+                        Strata.appearances().register(Fruit.class, Appearance.<Fruit>builder()
+                                .icon(fruit -> icons.get(fruit.name()))
+                                .name(fruit -> Text.of(fruit.name()))
+                                .tooltip(fruit -> Tooltip.text(fruit.stock() + " in stock"))
+                                .build());
+                        final ListView<Fruit> fruit = ui.<Fruit>listView().setItems(market.fruit());
                         """, context -> {
                     final ComponentFactory ui = context.ui();
                     final ListView<Fruit> custom = ui.<Fruit>listView(fruit -> CollectionPages.fruitRow(ui, fruit))
@@ -96,12 +116,15 @@ final class CollectionPages {
                             .setDeselectable(true)
                             .setActivateOnClick(true);
                     plain.setSize(140, 140);
+                    final ListView<Fruit> appearances = ui.<Fruit>listView().setItems(FRUIT);
+                    appearances.setSize(140, 140);
                     final ListView<String> empty = ui.<String>listView()
                             .setPlaceholder("No results");
                     empty.setSize(140, 140);
                     return Samples.column(ui,
                             Samples.section(ui, "Kinds",
                                     Samples.example(ui, "Custom cells", custom),
+                                    Samples.example(ui, "Appearances, no cell factory", appearances),
                                     Samples.example(ui, "Deselectable, activates on click", plain),
                                     Samples.example(ui, "Empty, with a placeholder", empty)));
                 }),
