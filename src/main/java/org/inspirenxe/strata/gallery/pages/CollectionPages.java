@@ -19,7 +19,6 @@ import org.inspirenxe.strata.api.ComponentFactory;
 import org.inspirenxe.strata.api.component.Component;
 import org.inspirenxe.strata.api.component.Tooltip;
 import org.inspirenxe.strata.api.control.collection.ComboBox;
-import org.inspirenxe.strata.api.control.collection.DualList;
 import org.inspirenxe.strata.api.control.collection.GridView;
 import org.inspirenxe.strata.api.control.collection.ListView;
 import org.inspirenxe.strata.api.control.collection.TableColumn;
@@ -273,39 +272,6 @@ final class CollectionPages {
                             Samples.section(ui, "Kinds",
                                     Samples.example(ui, "Icons and tooltips, selectable", icons),
                                     Samples.example(ui, "Larger cells, not selectable", letters)));
-                }),
-                new Page(SECTION, "Dual list", "Two lists side by side with buttons between them that move the "
-                        + "selected item, or every item, to the other side.", """
-                        final Label status = ui.label("");
-                        final DualList<String> members = ui.<String>dualList()
-                                .setTitle(DualList.Side.LEFT, "People")
-                                .setTitle(DualList.Side.RIGHT, "Members")
-                                .setItems(DualList.Side.LEFT, List.of("Ana", "Ben", "Cleo"))
-                                .setItems(DualList.Side.RIGHT, List.of("Dev"))
-                                .setVisibleRows(4);
-                        members.onEvent(DualList.MOVED, event -> status.setText(event.value().item() + " moved to the "
-                                + event.value().side()));
-                        panel.add(members).add(status);
-
-                        // Read the chosen items when you need them
-                        final List<String> chosen = members.items(DualList.Side.RIGHT);
-                        """, context -> {
-                    final ComponentFactory ui = context.ui();
-                    context.watch(DualList.MOVE, DualList.MOVED);
-                    final DualList<String> members = ui.<String>dualList()
-                            .setTitle(DualList.Side.LEFT, "People")
-                            .setTitle(DualList.Side.RIGHT, "Members")
-                            .setItems(DualList.Side.LEFT, Samples.PEOPLE.subList(0, 6))
-                            .setItems(DualList.Side.RIGHT, Samples.PEOPLE.subList(6, 8));
-                    final DualList<Fruit> basket = ui.<Fruit>dualList(fruit -> CollectionPages.fruitRow(ui, fruit))
-                            .setTitle(DualList.Side.LEFT, "Market")
-                            .setTitle(DualList.Side.RIGHT, "Basket")
-                            .setItems(DualList.Side.LEFT, FRUIT)
-                            .setVisibleRows(4);
-                    return Samples.column(ui,
-                            Samples.section(ui, "Kinds",
-                                    Samples.example(ui, "Text items", members),
-                                    Samples.example(ui, "Custom cells, four rows", basket)));
                 }));
     }
 
