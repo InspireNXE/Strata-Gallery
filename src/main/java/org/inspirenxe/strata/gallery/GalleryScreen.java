@@ -208,6 +208,10 @@ public final class GalleryScreen implements Screen {
                 .setAlignment(HorizontalAlignment.STRETCH, VerticalAlignment.TOP);
         this.log.watch(holder, EventLog.ATTRIBUTE_EVENTS);
         this.log.watch(holder, context.watched());
+        for (final Component<?> popup : context.popups()) {
+            this.log.watch(popup, EventLog.ATTRIBUTE_EVENTS);
+            this.log.watch(popup, context.watched());
+        }
         this.body.clear().add(holder);
         this.body.setScroll(0, 0);
     }

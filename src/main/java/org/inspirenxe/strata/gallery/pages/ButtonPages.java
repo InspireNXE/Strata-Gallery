@@ -17,15 +17,20 @@ package org.inspirenxe.strata.gallery.pages;
 
 import org.inspirenxe.strata.api.ComponentFactory;
 import org.inspirenxe.strata.api.control.attribute.item.SingleSelection;
+import org.inspirenxe.strata.api.control.attribute.popup.Openable;
 import org.inspirenxe.strata.api.control.button.Button;
 import org.inspirenxe.strata.api.control.button.CheckState;
 import org.inspirenxe.strata.api.control.button.RadioGroup;
+import org.inspirenxe.strata.api.control.field.ColorPicker;
+import org.inspirenxe.strata.api.control.menu.Flyout;
+import org.inspirenxe.strata.api.control.menu.Menu;
+import org.inspirenxe.strata.api.text.Text;
 import org.inspirenxe.strata.gallery.Page;
 
 import java.util.List;
 
 /**
- * The Buttons section: buttons and the controls that flip or cycle a value.
+ * The Buttons section: buttons, the drop-down button, and the controls that flip or cycle a value.
  */
 final class ButtonPages {
     private static final String SECTION = "Buttons";
@@ -64,6 +69,63 @@ final class ButtonPages {
                             Samples.section(ui, "Refusing a press",
                                     Samples.example(ui, "Canceled in a Button.PRESS handler", ui.button("Locked")
                                             .onEvent(Button.PRESS, event -> event.cancel()))));
+                }),
+                new Page(SECTION, "Drop-down button", "A button with an arrow that opens a popup below itself: a menu "
+                        + "of commands, or a flyout that holds any component. A menu opens at least as wide as the "
+                        + "button. The log also listens on the popups, which open outside the page.", """
+                        final Label status = ui.label("");
+                        final Menu sort = ui.menu()
+                                .addItem("By name", () -> status.setText("Sorted by name"))
+                                .addItem("By price", () -> status.setText("Sorted by price"));
+                        final DropDownButton sortButton = ui.dropDownButton("Sort", sort);
+
+                        // A flyout shows any component, here a color picker
+                        final ColorPicker picker = ui.colorPicker()
+                                .onEvent(ColorPicker.PICKED, event -> status.setText("Tint changed"));
+                        final DropDownButton tint = ui.dropDownButton("Tint", ui.flyout(picker));
+
+                        // Canceling the request keeps the popup closed
+                        final DropDownButton locked = ui.dropDownButton("Locked", ui.menu().addItem("Unlock", () -> { }))
+                                .onEvent(Openable.OPEN, event -> event.cancel());
+                        panel.add(sortButton).add(tint).add(locked).add(status);
+                        """, context -> {
+                    final ComponentFactory ui = context.ui();
+                    context.watch(Menu.CHOOSE, Menu.CHOSEN, ColorPicker.PICK, ColorPicker.PICKED);
+                    final Menu sort = context.watchPopup(ui.menu()
+                            .addItem("By name", () -> { })
+                            .addItem("By price", () -> { })
+                            .addItem("By seller", () -> { })
+                            .addSeparator()
+                            .addCheckItem("Hide sold", true, hidden -> { }));
+                    final Flyout tint = context.watchPopup(ui.flyout(ui.colorPicker().setColor(0xFF3A8EE6)));
+                    final Menu export = context.watchPopup(ui.menu()
+                            .addItem("As text", () -> { })
+                            .addItem("As a table", () -> { }));
+                    final Menu share = context.watchPopup(ui.menu()
+                            .addItem("Copy link", () -> { })
+                            .addItem(ui.menuItem("Send to " + Samples.PEOPLE.get(0)).setEnabled(false)));
+                    final Menu locked = context.watchPopup(ui.menu().addItem("Unlock", () -> { }));
+                    final Menu refused = context.watchPopup(ui.menu().addItem("Never shown", () -> { }));
+                    return Samples.column(ui,
+                            Samples.section(ui, "Popups",
+                                    Samples.example(ui, "A menu", ui.dropDownButton("Sort", sort)),
+                                    Samples.example(ui, "A flyout holding a color picker",
+                                            ui.dropDownButton("Tint", tint).setIcon(Samples.icon(0xFF3A8EE6)))),
+                            Samples.section(ui, "Kinds",
+                                    Samples.example(ui, "Icon only", ui.dropDownButton(Text.empty(), share)
+                                            .setIcon(Samples.icon())
+                                            .setTooltip("Share")),
+                                    Samples.example(ui, "Wide, at least as wide as its menu",
+                                            ui.dropDownButton("Export", export).setWidth(160))),
+                            Samples.section(ui, "States",
+                                    Samples.example(ui, "Disabled", ui.dropDownButton("Locked", locked)
+                                            .setEnabled(false)),
+                                    Samples.example(ui, "Nothing to open", ui.dropDownButton("Empty", ui.menu())),
+                                    Samples.example(ui, "Canceled in an Openable.OPEN handler",
+                                            ui.dropDownButton("Refuses", refused)
+                                                    .onEvent(Openable.OPEN, event -> event.cancel()))),
+                            Samples.note(ui, "Click a button, or press Enter, Space or Alt+Down while it has focus. "
+                                    + "Escape or a click outside closes the popup, and focus goes back to the button."));
                 }),
                 new Page(SECTION, "Cycle button", "Steps through a list of values: a left click goes forward, a right "
                         + "click or Shift goes back. The caption shows the current value.", """

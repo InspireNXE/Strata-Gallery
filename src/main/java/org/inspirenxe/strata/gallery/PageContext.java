@@ -16,6 +16,7 @@
 package org.inspirenxe.strata.gallery;
 
 import org.inspirenxe.strata.api.ComponentFactory;
+import org.inspirenxe.strata.api.component.Component;
 import org.inspirenxe.strata.api.event.EventType;
 import org.inspirenxe.strata.api.screen.Screen;
 
@@ -31,12 +32,14 @@ public final class PageContext {
     private final Consumer<Screen> open;
     private final Consumer<String> log;
     private final List<EventType<?>> watched;
+    private final List<Component<?>> popups;
 
     PageContext(final ComponentFactory ui, final Consumer<Screen> open, final Consumer<String> log) {
         this.ui = ui;
         this.open = open;
         this.log = log;
         this.watched = new ArrayList<>();
+        this.popups = new ArrayList<>();
     }
 
     /**
@@ -79,6 +82,20 @@ public final class PageContext {
     }
 
     /**
+     * Logs the events of a popup, such as a menu or a flyout, as if it were part of the page. A popup opens in an
+     * overlay outside the page's tree, so the log would not hear it otherwise. The log listens on it for the attribute
+     * events and the types added with {@link #watch}.
+     *
+     * @param popup the popup
+     * @param <C> the popup's type
+     * @return the popup
+     */
+    public <C extends Component<?>> C watchPopup(final C popup) {
+        this.popups.add(popup);
+        return popup;
+    }
+
+    /**
      * Adds a line to the event log by hand, for events of something that is not in the page's tree, such as a
      * {@code RadioGroup}.
      *
@@ -90,5 +107,9 @@ public final class PageContext {
 
     List<EventType<?>> watched() {
         return this.watched;
+    }
+
+    List<Component<?>> popups() {
+        return this.popups;
     }
 }

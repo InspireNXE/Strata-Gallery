@@ -18,16 +18,22 @@ package org.inspirenxe.strata.gallery.pages;
 import org.inspirenxe.strata.api.ComponentFactory;
 import org.inspirenxe.strata.api.control.attribute.text.HasText;
 import org.inspirenxe.strata.api.control.button.Button;
+import org.inspirenxe.strata.api.control.field.TextBox;
+import org.inspirenxe.strata.api.control.menu.Flyout;
 import org.inspirenxe.strata.api.control.menu.Menu;
 import org.inspirenxe.strata.api.control.menu.MenuBar;
 import org.inspirenxe.strata.api.control.menu.MenuEntry;
+import org.inspirenxe.strata.api.event.input.InputEvents;
+import org.inspirenxe.strata.api.input.MouseButton;
+import org.inspirenxe.strata.api.layout.Orientation;
+import org.inspirenxe.strata.api.text.TextStyle;
 import org.inspirenxe.strata.gallery.Page;
 import org.inspirenxe.strata.gallery.PageContext;
 
 import java.util.List;
 
 /**
- * The Menus section: a menu bar, and a menu opened on demand.
+ * The Menus section: a menu bar, a menu opened on demand, and the flyout, a popup for any component.
  */
 final class MenuPages {
     private static final String SECTION = "Menus";
@@ -122,6 +128,79 @@ final class MenuPages {
                             Samples.section(ui, "Opening",
                                     Samples.example(ui, "Below a button, with open(bounds)", below),
                                     Samples.example(ui, "At a point, with openAt(x, y)", corner)));
+                }),
+                new Page(SECTION, "Flyout", "A popup that shows any component, opened below a component or at a "
+                        + "point. Focus moves into it and Tab stays inside. Escape closes it, and so does a click "
+                        + "outside unless its light dismiss is off.", """
+                        final Label status = ui.label("");
+                        final TextBox name = ui.textBox().setPlaceholder("New name");
+                        final Button save = ui.button("Save");
+                        final Flyout rename = ui.flyout(ui.stackPanel().setSpacing(4).add(name).add(save));
+                        save.onEvent(Button.PRESSED, event -> {
+                            status.setText("Renamed to " + name.text());
+                            rename.close();
+                        });
+
+                        // Below a component with open(bounds), or at a point with openAt(x, y)
+                        final Button button = ui.button("Rename");
+                        button.onEvent(Button.PRESSED, event -> rename.open(button.bounds()));
+                        final Label file = ui.label("notes.md").onEvent(InputEvents.CLICK, event -> {
+                            if (event.button() == MouseButton.RIGHT) {
+                                rename.openAt(event.x(), event.y());
+                            }
+                        });
+
+                        // Without light dismiss it stays open while the user works on the screen
+                        final Flyout help = ui.flyout(ui.label("Prices include tax.")).setLightDismiss(false);
+                        final Button note = ui.button("Show a note");
+                        note.onEvent(Button.PRESSED, event -> help.open(note.bounds()));
+                        panel.add(button).add(file).add(note).add(status);
+                        """, context -> {
+                    final ComponentFactory ui = context.ui();
+                    final TextBox name = ui.textBox().setPlaceholder("New name");
+                    name.setWidth(140);
+                    final Button save = ui.button("Save");
+                    final Flyout rename = context.watchPopup(ui.flyout(ui.stackPanel()
+                            .setSpacing(4)
+                            .add(ui.label("Rename notes.md"))
+                            .add(name)
+                            .add(ui.stackPanel(Orientation.HORIZONTAL).setSpacing(4)
+                                    .add(save)
+                                    .add(ui.button("Cancel")))));
+                    save.onEvent(Button.PRESSED, event -> rename.close());
+                    final Button below = ui.button("Rename");
+                    below.onEvent(Button.PRESSED, event -> rename.open(below.bounds()));
+
+                    final Flyout details = context.watchPopup(ui.flyout(ui.stackPanel()
+                            .setSpacing(2)
+                            .add(ui.label("notes.md"))
+                            .add(ui.label("Owner: " + Samples.PEOPLE.get(1)).setStyle(TextStyle.DEFAULT.withColor(
+                                    Samples.MUTED)))
+                            .add(ui.label("Edited by " + Samples.PEOPLE.get(2)).setStyle(TextStyle.DEFAULT.withColor(
+                                    Samples.MUTED)))));
+                    final Button target = ui.button("Right-click me");
+                    target.onEvent(InputEvents.CLICK, event -> {
+                        if (event.button() == MouseButton.RIGHT) {
+                            details.openAt(event.x(), event.y());
+                        }
+                    });
+
+                    final Flyout pinned = context.watchPopup(ui.flyout().setLightDismiss(false));
+                    pinned.setContent(ui.stackPanel()
+                            .setSpacing(4)
+                            .add(ui.label("Prices include tax."))
+                            .add(ui.button("Close").onEvent(Button.PRESSED, event -> pinned.close())));
+                    final Button note = ui.button("Show a note");
+                    note.onEvent(Button.PRESSED, event -> pinned.open(note.bounds()));
+                    return Samples.column(ui,
+                            Samples.section(ui, "Opening",
+                                    Samples.example(ui, "Below a button, with open(bounds)", below),
+                                    Samples.example(ui, "At the pointer on a right click, with openAt(x, y)", target)),
+                            Samples.section(ui, "Light dismiss",
+                                    Samples.example(ui, "Off: stays open on a click outside", note)),
+                            Samples.note(ui, "Tab and Shift+Tab move between the flyout's fields and wrap. Events of "
+                                    + "the controls inside a flyout reach handlers on the flyout, so the log hears "
+                                    + "them there."));
                 }));
     }
 

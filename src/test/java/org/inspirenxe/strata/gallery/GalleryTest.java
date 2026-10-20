@@ -16,6 +16,7 @@
 package org.inspirenxe.strata.gallery;
 
 import org.inspirenxe.strata.api.control.button.Button;
+import org.inspirenxe.strata.api.control.button.DropDownButton;
 import org.inspirenxe.strata.api.geometry.Rect;
 import org.inspirenxe.strata.api.input.Modifiers;
 import org.inspirenxe.strata.api.input.MouseButton;
@@ -66,6 +67,23 @@ class GalleryTest {
                     GalleryTest.click(stack, button[0].bounds());
                 });
         assertEquals(List.of("button.pressed   Button \"Go\"", "button.press   Button \"Go\""), screen.logLines());
+    }
+
+    @Test
+    void popupEventsReachTheLogWhenThePageWatchesThem() {
+        final DropDownButton[] button = new DropDownButton[1];
+        final Page page = new Page("Test", "Popup", "", "", context -> button[0] = context.ui().dropDownButton("Sort",
+                context.watchPopup(context.ui().menu().addItem("By name", () -> { }))));
+        final GalleryScreen screen = new GalleryScreen(List.of(page), null, page);
+        SwingSnapshot.render(screen, Themes.flat(), 1400, 900, 1.5f,
+                stack -> {
+                    stack.pointerMoved(0, 0, Modifiers.NONE);
+                    GalleryTest.click(stack, button[0].bounds());
+                });
+        // Rendering ends by closing the screen, which closes the menu too
+        assertEquals(List.of("closable.closed   DropDownButton \"Sort\"", "closable.closed   Menu",
+                "openable.opened   DropDownButton \"Sort\"", "openable.opened   Menu",
+                "openable.open   DropDownButton \"Sort\""), screen.logLines());
     }
 
     private static void click(final ScreenStack stack, final Rect bounds) {

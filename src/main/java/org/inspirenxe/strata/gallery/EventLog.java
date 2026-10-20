@@ -71,9 +71,9 @@ final class EventLog {
     }
 
     /**
-     * Logs every given type that reaches a page's content.
+     * Logs every given type that reaches a page's content, or a popup the page opens.
      *
-     * @param content the page's content
+     * @param content the page's content or a popup
      * @param types the types to log
      */
     void watch(final Component<?> content, final List<EventType<?>> types) {
