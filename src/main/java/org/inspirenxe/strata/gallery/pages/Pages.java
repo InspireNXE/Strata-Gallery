@@ -38,6 +38,7 @@ public final class Pages {
         pages.addAll(DisplayPages.pages());
         pages.addAll(ButtonPages.pages());
         pages.addAll(FieldPages.pages());
+        pages.addAll(DatePages.pages());
         pages.addAll(CollectionPages.pages());
         pages.addAll(MenuPages.pages());
         pages.addAll(PanePages.pages());
