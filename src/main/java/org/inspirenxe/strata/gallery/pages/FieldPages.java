@@ -16,10 +16,14 @@
 package org.inspirenxe.strata.gallery.pages;
 
 import org.inspirenxe.strata.api.ComponentFactory;
+import org.inspirenxe.strata.api.control.attribute.text.TextEntry;
 import org.inspirenxe.strata.api.control.attribute.text.TextInput;
+import org.inspirenxe.strata.api.control.display.Label;
 import org.inspirenxe.strata.api.control.field.ColorPicker;
+import org.inspirenxe.strata.api.control.field.PasswordTextBox;
 import org.inspirenxe.strata.api.control.field.TextBox;
 import org.inspirenxe.strata.api.layout.Orientation;
+import org.inspirenxe.strata.api.layout.StackPanel;
 import org.inspirenxe.strata.gallery.Page;
 
 import java.util.List;
@@ -57,8 +61,7 @@ final class FieldPages {
                                 event.cancel();
                             }
                         });
-                        final TextBox password = ui.textBox().setPassword(true);
-                        panel.add(city).add(quantity).add(password).add(status);
+                        panel.add(city).add(quantity).add(status);
                         """, context -> {
                     final ComponentFactory ui = context.ui();
                     context.watch(TextBox.SUBMIT, TextBox.SUBMITTED, TextBox.COMPLETE, TextBox.COMPLETED);
@@ -68,9 +71,6 @@ final class FieldPages {
                                     Samples.example(ui, "At most 8 characters", ui.textBox()
                                             .setMaxLength(8)
                                             .setText("Kyoto")),
-                                    Samples.example(ui, "Password", ui.textBox()
-                                            .setPassword(true)
-                                            .setText("pears")),
                                     Samples.example(ui, "Fruit suggestions (type a)", ui.textBox()
                                             .setSuggestionProvider(TextBox.SuggestionProvider.words(FieldPages.FRUIT))
                                             .setMaxVisibleSuggestions(5))),
@@ -97,6 +97,72 @@ final class FieldPages {
                                             .onEvent(TextInput.EDIT, event -> event.setValue(
                                                     event.value().toUpperCase(Locale.ROOT)))),
                                     Samples.example(ui, "Wide", ui.textBox().setText("Stretches to 240").setWidth(240))));
+                }),
+                new Page(SECTION, "Password text box", "A single line for a password. It draws a mask, keeps "
+                        + "its text out of events, snapshots and the clipboard, and gives it to code only as chars. "
+                        + "The eye or Alt+F8 shows the text, except text set from code until the user replaces it.", """
+                        final Label status = ui.label("");
+                        final PasswordTextBox password = ui.passwordTextBox()
+                                .setPlaceholder("Password")
+                                .setMaxLength(64);
+                        final PasswordTextBox confirm = ui.passwordTextBox()
+                                .setPlaceholder("Repeat password")
+                                .setRevealable(false);
+                        // MODIFIED carries lengths, never text, so one handler can watch both boxes
+                        panel.onEvent(TextEntry.MODIFIED, event -> status.setText(
+                                password.matches(confirm) ? "Passwords match" : "Passwords differ"));
+                        // Enter submits; read the password as chars, which are zeroed when the reader returns
+                        password.onEvent(PasswordTextBox.SUBMITTED, event -> status.setText(
+                                "Signing in with " + password.withPassword(chars -> chars.length) + " characters"));
+                        final PasswordTextBox pin = ui.passwordTextBox()
+                                .setMaxLength(6)
+                                .setCodePointFilter(Character::isDigit);
+                        panel.add(password).add(confirm).add(status).add(pin);
+                        """, context -> {
+                    final ComponentFactory ui = context.ui();
+                    context.watch(PasswordTextBox.REVEAL, PasswordTextBox.REVEALED, PasswordTextBox.SUBMIT,
+                            PasswordTextBox.SUBMITTED);
+                    final PasswordTextBox password = ui.passwordTextBox().setPlaceholder("Password");
+                    final PasswordTextBox confirm = ui.passwordTextBox()
+                            .setPlaceholder("Repeat password")
+                            .setRevealable(false);
+                    final Label match = ui.label("Type the same password twice");
+                    final StackPanel pair = ui.stackPanel().setSpacing(4).add(password).add(confirm).add(match);
+                    pair.onEvent(TextEntry.MODIFIED, event -> match.setText(password.isEmpty() && confirm.isEmpty()
+                            ? "Type the same password twice"
+                            : password.matches(confirm) ? "Passwords match" : "Passwords differ"));
+                    return Samples.column(ui,
+                            Samples.section(ui, "Kinds",
+                                    Samples.example(ui, "Empty, with a placeholder", ui.passwordTextBox()
+                                            .setPlaceholder("Password")),
+                                    Samples.example(ui, "Set from code (eye locked)", ui.passwordTextBox()
+                                            .setPassword("pears and plums".toCharArray())),
+                                    Samples.example(ui, "Shown from code", ui.passwordTextBox()
+                                            .setPassword("pears and plums".toCharArray())
+                                            .setRevealed(true)),
+                                    Samples.example(ui, "\u2022 as the mask", ui.passwordTextBox()
+                                            .setMaskCodePoint('\u2022')
+                                            .setPassword("pears".toCharArray()))),
+                            Samples.section(ui, "Rules",
+                                    Samples.example(ui, "Not revealable", ui.passwordTextBox()
+                                            .setRevealable(false)
+                                            .setPassword("pears".toCharArray())),
+                                    Samples.example(ui, "Six-digit PIN", ui.passwordTextBox()
+                                            .setMaxLength(6)
+                                            .setCodePointFilter(Character::isDigit)
+                                            .setPlaceholder("PIN")
+                                            .setWidth(60)),
+                                    Samples.example(ui, "Confirm pair", pair)),
+                            Samples.section(ui, "States",
+                                    Samples.example(ui, "Read-only", ui.passwordTextBox()
+                                            .setReadOnly(true)
+                                            .setPassword("pears".toCharArray())),
+                                    Samples.example(ui, "Disabled", ui.passwordTextBox()
+                                            .setPassword("pears".toCharArray())
+                                            .setEnabled(false)),
+                                    Samples.example(ui, "Selects all on focus", ui.passwordTextBox()
+                                            .setSelectAllOnFocus(true)
+                                            .setPassword("replace me".toCharArray()))));
                 }),
                 new Page(SECTION, "Text area", "Text over several lines. It edits like a text box, but Enter inserts a "
                         + "line break, and text taller than the view scrolls.", """

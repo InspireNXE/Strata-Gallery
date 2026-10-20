@@ -22,6 +22,7 @@ import org.inspirenxe.strata.api.control.attribute.item.Selection;
 import org.inspirenxe.strata.api.control.attribute.popup.Closable;
 import org.inspirenxe.strata.api.control.attribute.popup.Openable;
 import org.inspirenxe.strata.api.control.attribute.text.HasText;
+import org.inspirenxe.strata.api.control.attribute.text.TextEntry;
 import org.inspirenxe.strata.api.control.attribute.text.TextInput;
 import org.inspirenxe.strata.api.control.attribute.value.Ranged;
 import org.inspirenxe.strata.api.control.attribute.value.Toggle;
@@ -48,6 +49,7 @@ final class EventLog {
             Button.PRESS, Button.PRESSED,
             Toggle.TOGGLE, Toggle.TOGGLED,
             Ranged.CHANGE, Ranged.CHANGED,
+            TextEntry.MODIFY, TextEntry.MODIFIED,
             TextInput.EDIT, TextInput.EDITED,
             Selection.SELECT, Selection.SELECTED,
             MultiSelection.SELECT_MANY, MultiSelection.SELECTED_MANY,
