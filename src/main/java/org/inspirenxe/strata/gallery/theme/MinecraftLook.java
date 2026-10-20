@@ -123,6 +123,9 @@ final class MinecraftLook {
                 .paint(CheckBox.STYLE_HOVERED, this.paint("widget/checkbox_highlighted", null))
                 .paint(CheckBox.STYLE_CHECKED, this.paint("widget/checkbox_selected", null))
                 .paint(CheckBox.STYLE_CHECKED_HOVERED, this.paint("widget/checkbox_selected_highlighted", null))
+                // Vanilla has no mixed sprite; a square in the text color over the empty box
+                .paint(CheckBox.STYLE_MARK_MIXED, Paint.solid(0xFFE0E0E0))
+                .paint(CheckBox.STYLE_MARK_MIXED_DISABLED, Paint.solid(0xFFA0A0A0))
                 .textStyle(CheckBox.STYLE_TEXT, text)
                 .textStyle(CheckBox.STYLE_TEXT_DISABLED, text.withColor(0xFFA0A0A0))
                 .paint(Slider.STYLE_TRACK, this.paint("widget/slider", SLIDER_BORDER))

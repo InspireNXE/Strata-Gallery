@@ -139,13 +139,11 @@ public final class GalleryScreen implements Screen {
                 .setAlignment(HorizontalAlignment.STRETCH, VerticalAlignment.TOP);
         this.usagePanel = this.panel()
                 .rows(GridLength.auto(), GridLength.auto())
-                .columns(GridLength.weighted(1), GridLength.auto())
-                .setSpacing(4, 4)
-                .add(ui.label("Usage").setStyle(this.chrome.text().withBold(true)).setAnchor(Anchor.MIDDLE_LEFT), 0, 0)
-                .add(ui.label("ui is the ComponentFactory passed to Screen.build, and panel is a StackPanel")
-                        .setStyle(this.chrome.text().withColor(this.chrome.muted()))
-                        .setAnchor(Anchor.MIDDLE_RIGHT), 0, 1)
-                .add(this.usage, 1, 0, 1, 2)
+                .setSpacing(0, 4)
+                .add(this.header(ui.label("Usage"),
+                        ui.label("ui is the ComponentFactory passed to Screen.build, and panel is a StackPanel")
+                                .setStyle(this.chrome.text().withColor(this.chrome.muted()))), 0, 0)
+                .add(this.usage, 1, 0)
                 .setAlignment(HorizontalAlignment.STRETCH, VerticalAlignment.TOP);
 
         final ListView<String> lines = ui.<String>listView(line -> ui.label(line).setAnchor(Anchor.MIDDLE_LEFT))
@@ -157,11 +155,9 @@ public final class GalleryScreen implements Screen {
                 .onEvent(Button.PRESSED, event -> this.log.clear());
         final Component<?> logPanel = this.panel()
                 .rows(GridLength.auto(), GridLength.weighted(1))
-                .columns(GridLength.weighted(1), GridLength.auto())
-                .setSpacing(4, 4)
-                .add(ui.label("Events").setStyle(this.chrome.text().withBold(true)).setAnchor(Anchor.MIDDLE_LEFT), 0, 0)
-                .add(clear, 0, 1)
-                .add(lines, 1, 0, 1, 2)
+                .setSpacing(0, 4)
+                .add(this.header(ui.label("Events"), clear), 0, 0)
+                .add(lines, 1, 0)
                 .setAnchor(Anchor.FILL);
 
         final Component<?> page = ui.gridPanel()
@@ -246,6 +242,20 @@ public final class GalleryScreen implements Screen {
                         .setStyle(this.chrome.text().withColor(this.chrome.muted()))
                         .setAnchor(Anchor.MIDDLE_RIGHT), 0, 1)
                 .add(selector, 0, 2)
+                .setAlignment(HorizontalAlignment.STRETCH, VerticalAlignment.TOP);
+    }
+
+    /**
+     * A panel's heading row: a bold title on the left and something at the right edge. It is a grid of its own, so
+     * the content below, however wide it grows, never moves the right side.
+     */
+    private Component<?> header(final Label title, final Component<?> right) {
+        return this.ui.gridPanel()
+                .columns(GridLength.weighted(1), GridLength.auto())
+                .rows(GridLength.auto())
+                .setSpacing(4, 0)
+                .add(title.setStyle(this.chrome.text().withBold(true)).setAnchor(Anchor.MIDDLE_LEFT), 0, 0)
+                .add(right.setAnchor(Anchor.MIDDLE_RIGHT), 0, 1)
                 .setAlignment(HorizontalAlignment.STRETCH, VerticalAlignment.TOP);
     }
 
