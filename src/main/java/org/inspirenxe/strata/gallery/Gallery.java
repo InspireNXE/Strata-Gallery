@@ -168,7 +168,7 @@ public final class Gallery {
 
         void open() {
             this.panel.screens().push(this.screen(this.pages.getFirst()));
-            final JFrame frame = new JFrame("Strata gallery");
+            final JFrame frame = new JFrame("Strata Gallery");
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             frame.setContentPane(this.panel);
             frame.pack();
