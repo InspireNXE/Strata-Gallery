@@ -17,7 +17,8 @@ package org.inspirenxe.strata.gallery;
 
 import org.inspirenxe.strata.api.component.Component;
 import org.inspirenxe.strata.api.control.attribute.item.Activatable;
-import org.inspirenxe.strata.api.control.attribute.item.SingleSelection;
+import org.inspirenxe.strata.api.control.attribute.item.MultiSelection;
+import org.inspirenxe.strata.api.control.attribute.item.Selection;
 import org.inspirenxe.strata.api.control.attribute.popup.Closable;
 import org.inspirenxe.strata.api.control.attribute.popup.Openable;
 import org.inspirenxe.strata.api.control.attribute.text.HasText;
@@ -48,7 +49,8 @@ final class EventLog {
             Toggle.TOGGLE, Toggle.TOGGLED,
             Ranged.CHANGE, Ranged.CHANGED,
             TextInput.EDIT, TextInput.EDITED,
-            SingleSelection.SELECT, SingleSelection.SELECTED,
+            Selection.SELECT, Selection.SELECTED,
+            MultiSelection.SELECT_MANY, MultiSelection.SELECTED_MANY,
             Activatable.ACTIVATE, Activatable.ACTIVATED,
             Openable.OPEN, Openable.OPENED,
             Closable.CLOSE, Closable.CLOSED);

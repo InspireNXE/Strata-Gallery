@@ -20,6 +20,8 @@ import org.inspirenxe.strata.api.Strata;
 import org.inspirenxe.strata.api.appearance.Appearance;
 import org.inspirenxe.strata.api.component.Component;
 import org.inspirenxe.strata.api.component.Tooltip;
+import org.inspirenxe.strata.api.control.attribute.item.MultiSelection;
+import org.inspirenxe.strata.api.control.attribute.item.SelectionMode;
 import org.inspirenxe.strata.api.control.collection.ComboBox;
 import org.inspirenxe.strata.api.control.collection.GridView;
 import org.inspirenxe.strata.api.control.collection.ListView;
@@ -105,6 +107,11 @@ final class CollectionPages {
                                 .tooltip(fruit -> Tooltip.text(fruit.stock() + " in stock"))
                                 .build());
                         final ListView<Fruit> fruit = ui.<Fruit>listView().setItems(market.fruit());
+
+                        // Control adds a row, Shift selects a range, Control+A selects every row
+                        fruit.setSelectionMode(SelectionMode.MULTIPLE)
+                                .onEvent(MultiSelection.SELECTED_MANY, event -> status.setText(
+                                        fruit.selectedItems().size() + " selected"));
                         """, context -> {
                     final ComponentFactory ui = context.ui();
                     final ListView<Fruit> custom = ui.<Fruit>listView(fruit -> CollectionPages.fruitRow(ui, fruit))
@@ -118,6 +125,11 @@ final class CollectionPages {
                     plain.setSize(140, 140);
                     final ListView<Fruit> appearances = ui.<Fruit>listView().setItems(FRUIT);
                     appearances.setSize(140, 140);
+                    final ListView<String> several = ui.<String>listView()
+                            .setItems(Samples.PEOPLE)
+                            .setSelectionMode(SelectionMode.MULTIPLE)
+                            .selectIndexes(List.of(1, 2, 4));
+                    several.setSize(140, 140);
                     final ListView<String> empty = ui.<String>listView()
                             .setPlaceholder("No results");
                     empty.setSize(140, 140);
@@ -125,6 +137,7 @@ final class CollectionPages {
                             Samples.section(ui, "Kinds",
                                     Samples.example(ui, "Custom cells", custom),
                                     Samples.example(ui, "Appearances, no cell factory", appearances),
+                                    Samples.example(ui, "Several rows: Control, Shift, Control+A", several),
                                     Samples.example(ui, "Deselectable, activates on click", plain),
                                     Samples.example(ui, "Empty, with a placeholder", empty)));
                 }),
