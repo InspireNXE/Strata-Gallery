@@ -15,42 +15,26 @@
  */
 package org.inspirenxe.strata.gallery.theme;
 
-import org.inspirenxe.strata.api.control.button.Button;
-import org.inspirenxe.strata.api.control.button.CheckBox;
-import org.inspirenxe.strata.api.control.button.RadioButton;
-import org.inspirenxe.strata.api.control.button.ToggleSwitch;
-import org.inspirenxe.strata.api.control.collection.ComboBox;
-import org.inspirenxe.strata.api.control.collection.GridView;
-import org.inspirenxe.strata.api.control.collection.ListView;
-import org.inspirenxe.strata.api.control.collection.TableView;
-import org.inspirenxe.strata.api.control.display.BusyIndicator;
-import org.inspirenxe.strata.api.control.display.Label;
-import org.inspirenxe.strata.api.control.display.ProgressBar;
-import org.inspirenxe.strata.api.control.display.Separator;
-import org.inspirenxe.strata.api.control.field.ColorPicker;
-import org.inspirenxe.strata.api.control.field.Slider;
-import org.inspirenxe.strata.api.control.field.TextArea;
-import org.inspirenxe.strata.api.control.field.TextBox;
-import org.inspirenxe.strata.api.control.menu.Menu;
-import org.inspirenxe.strata.api.control.pane.Expander;
-import org.inspirenxe.strata.api.control.pane.ScrollBar;
-import org.inspirenxe.strata.api.control.pane.TabBar;
-import org.inspirenxe.strata.api.control.window.Window;
 import org.inspirenxe.strata.api.geometry.Insets;
 import org.inspirenxe.strata.api.geometry.Size;
-import org.inspirenxe.strata.api.layout.ScrollPanel;
-import org.inspirenxe.strata.api.overlay.Overlays;
 import org.inspirenxe.strata.api.text.TextStyle;
 import org.inspirenxe.strata.api.theme.Border;
 import org.inspirenxe.strata.api.theme.Paint;
 import org.inspirenxe.strata.api.theme.SpriteId;
 import org.inspirenxe.strata.api.theme.Theme;
+import org.inspirenxe.strata.api.theme.ThemeId;
+import org.inspirenxe.strata.api.theme.ThemeRef;
+import org.inspirenxe.strata.spi.ThemeDocument;
+import org.inspirenxe.strata.swing.SwingThemeSource;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -58,33 +42,22 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * The gallery's copy of Strata-Minecraft's {@code MinecraftThemes.vanilla()}, drawn from a client jar and a resource
- * pack read at runtime. Every key names the same sprite as in game. The gallery cannot use Strata-Minecraft itself,
- * which needs the game's classes, so keep the two in step.
+ * Strata-Minecraft's vanilla theme, drawn from a client jar and a resource pack read at runtime. The theme comes
+ * from the gallery's copy of Strata-Minecraft's {@code vanilla.json}, registered as the base file of
+ * {@code minecraft:vanilla} on a {@link SwingThemeSource} and resolved, so every key names the same sprite as in
+ * game. The gallery cannot use Strata-Minecraft itself, which needs the game's classes, so when the file changes
+ * there, copy it to {@code src/main/resources/strata/minecraft/themes/vanilla.json} here.
  *
  * <p>The game slices every sprite by its {@code .png.mcmeta}, whatever paint the theme names, so this reads the
- * {@code .mcmeta} that comes with each image and builds the paint from it: a nine-slice of the declared size,
- * tiled unless the {@code .mcmeta} stretches it, a tiled sprite, or a plain sprite when the image has no slicing.
- * Sized paints draw a pack's larger images with the game's borders. The borders below, those of 26.3, are used
- * only when a nine-slice {@code .mcmeta} cannot be read.</p>
+ * {@code .mcmeta} that comes with each of the game's images and builds the paint from it: a nine-slice of the
+ * declared size, tiled unless the {@code .mcmeta} stretches it, a tiled sprite, or a plain sprite when the image has
+ * no slicing. Each keeps the tint the theme gives it. Sized paints draw a pack's larger images with the game's
+ * borders. The theme's own borders, those of 26.3, are used only when a nine-slice {@code .mcmeta} cannot be
+ * read.</p>
  */
 final class MinecraftLook {
-    private static final Insets BUTTON_BORDER = Insets.of(3f);
-    /**
-     * A vanilla button's text sits 6 below its top in a 20-tall widget, so a line of 9 leaves 5 below.
-     */
-    private static final Insets WIDGET_PADDING_8 = new Insets(8f, 6f, 8f, 5f);
-    /**
-     * The same top and bottom with vanilla's 4 at the sides, as an edit box draws its text.
-     */
-    private static final Insets WIDGET_PADDING_4 = new Insets(4f, 6f, 4f, 5f);
-    private static final Insets BUTTON_DISABLED_BORDER = Insets.of(1f);
-    private static final Insets FIELD_BORDER = Insets.of(1f);
-    private static final Insets SLIDER_BORDER = Insets.of(1f);
-    private static final Insets SLIDER_HANDLE_BORDER = new Insets(2f, 2f, 2f, 3f);
-    private static final Insets SCROLLER_BORDER = Insets.of(1f);
-    private static final Insets TAB_BORDER = new Insets(2f, 2f, 2f, 0f);
-    private static final Insets POPUP_BORDER = Insets.of(6f);
+    private static final ThemeId VANILLA = ThemeId.of("minecraft", "vanilla");
+    private static final String VANILLA_FILE = "/strata/minecraft/themes/vanilla.json";
 
     private static final SpriteId BACKDROP = SpriteId.of(MinecraftAssets.GENERATED, "minecraft/backdrop");
     private static final String TEXTURES = "assets/minecraft/textures/gui/";
@@ -115,130 +88,49 @@ final class MinecraftLook {
     }
 
     /**
-     * Mirrors {@code MinecraftThemes.vanilla()} key for key. Only the container screen slot keys are left out: they
-     * belong to Strata-Minecraft's {@code MenuPanel}, which the gallery does not have.
+     * Resolves {@code minecraft:vanilla} from the copy of {@code vanilla.json}, then gives each of the game's sprites
+     * the slicing its {@code .mcmeta} declares.
      */
     private Theme theme() {
-        final TextStyle text = TextStyle.DEFAULT.withColor(0xFFFFFFFF).withShadow(true);
-        return Theme.builder("minecraft:vanilla")
-                .paint(Button.STYLE_NORMAL, this.paint("widget/button", BUTTON_BORDER))
-                .paint(Button.STYLE_HOVERED, this.paint("widget/button_highlighted", BUTTON_BORDER))
-                // Vanilla has no pressed sprite; the highlighted one darkened, as MinecraftThemes does
-                .paint(Button.STYLE_PRESSED, tinted(this.paint("widget/button_highlighted", BUTTON_BORDER), 0xFFB0B0B0))
-                .paint(Button.STYLE_DISABLED, this.paint("widget/button_disabled", BUTTON_DISABLED_BORDER))
-                .textStyle(Button.STYLE_TEXT, text)
-                .textStyle(Button.STYLE_TEXT_DISABLED, text.withColor(0xFFA0A0A0))
-                .textStyle(Label.STYLE_TEXT, text)
-                .paint(CheckBox.STYLE_NORMAL, this.paint("widget/checkbox", null))
-                .paint(CheckBox.STYLE_HOVERED, this.paint("widget/checkbox_highlighted", null))
-                .paint(CheckBox.STYLE_CHECKED, this.paint("widget/checkbox_selected", null))
-                .paint(CheckBox.STYLE_CHECKED_HOVERED, this.paint("widget/checkbox_selected_highlighted", null))
-                // Vanilla has no mixed sprite; a square in the text color over the empty box
-                .paint(CheckBox.STYLE_MARK_MIXED, Paint.solid(0xFFE0E0E0))
-                .paint(CheckBox.STYLE_MARK_MIXED_DISABLED, Paint.solid(0xFFA0A0A0))
-                .textStyle(CheckBox.STYLE_TEXT, text)
-                .textStyle(CheckBox.STYLE_TEXT_DISABLED, text.withColor(0xFFA0A0A0))
-                .paint(Slider.STYLE_TRACK, this.paint("widget/slider", SLIDER_BORDER))
-                .paint(Slider.STYLE_THUMB, this.paint("widget/slider_handle", SLIDER_HANDLE_BORDER))
-                .paint(Slider.STYLE_THUMB_HOVERED, this.paint("widget/slider_handle_highlighted", SLIDER_HANDLE_BORDER))
-                .textStyle(Slider.STYLE_TEXT, text)
-                .textStyle(Slider.STYLE_TEXT_DISABLED, text.withColor(0xFFA0A0A0))
-                .paint(TextBox.STYLE_NORMAL, this.paint("widget/text_field", FIELD_BORDER))
-                .paint(TextBox.STYLE_FOCUSED, this.paint("widget/text_field_highlighted", FIELD_BORDER))
-                .paint(TextBox.STYLE_DISABLED, this.paint("widget/text_field", FIELD_BORDER))
-                .paint(TextBox.STYLE_SELECTION, Paint.solid(0x800000FF))
-                .paint(TextBox.STYLE_CARET, Paint.solid(0xFFD0D0D0))
-                .textStyle(TextBox.STYLE_TEXT, text.withColor(0xFFE0E0E0))
-                .textStyle(TextBox.STYLE_TEXT_DISABLED, text.withColor(0xFF707070))
-                .textStyle(TextBox.STYLE_TEXT_READ_ONLY, text.withColor(0xFFA0A0A0))
-                .paint(ScrollPanel.STYLE_THUMB, this.paint("widget/scroller", SCROLLER_BORDER))
-                .paint(ScrollPanel.STYLE_TRACK, this.paint("widget/scroller_background", SCROLLER_BORDER))
-                .paint(ListView.STYLE_ROW_HOVERED, Paint.solid(0x30FFFFFF))
-                .paint(ListView.STYLE_ROW_SELECTED, Paint.solid(0x60FFFFFF))
-                .textStyle(ListView.STYLE_PLACEHOLDER, text.withColor(0xFFA0A0A0))
-                .paint(ComboBox.STYLE_NORMAL, this.paint("widget/button", BUTTON_BORDER))
-                .paint(ComboBox.STYLE_HOVERED, this.paint("widget/button_highlighted", BUTTON_BORDER))
-                .paint(ComboBox.STYLE_DISABLED, this.paint("widget/button_disabled", BUTTON_DISABLED_BORDER))
-                .paint(ComboBox.STYLE_POPUP, Paint.solid(0xF0101010))
-                .textStyle(ComboBox.STYLE_TEXT, text)
-                .textStyle(ComboBox.STYLE_TEXT_DISABLED, text.withColor(0xFFA0A0A0))
-                .paint(Window.STYLE_BACKGROUND, this.paint("popup/background", POPUP_BORDER))
-                .textStyle(Window.STYLE_TITLE_TEXT, text)
-                .textStyle(Window.STYLE_CLOSE, text.withColor(0xFFA0A0A0))
-                .textStyle(Window.STYLE_CLOSE_HOVERED, text)
-                .paint(TabBar.STYLE_NORMAL, this.paint("widget/tab", TAB_BORDER))
-                .paint(TabBar.STYLE_HOVERED, this.paint("widget/tab_highlighted", TAB_BORDER))
-                .paint(TabBar.STYLE_SELECTED, this.paint("widget/tab_selected", TAB_BORDER))
-                .textStyle(TabBar.STYLE_TEXT, text.withColor(0xFFA0A0A0))
-                .textStyle(TabBar.STYLE_TEXT_SELECTED, text)
-                .textStyle(TabBar.STYLE_TEXT_DISABLED, text.withColor(0xFF606060))
-                // widget/tab is empty in its top 4 pixels and edged in the next 2, so its inside starts 6 down;
-                // both paddings are 10 tall, so tabs are a line plus 10, nearer vanilla's 24
-                .insets(TabBar.STYLE_PADDING, new Insets(8f, 7f, 8f, 3f))
-                .insets(TabBar.STYLE_PADDING_SELECTED, new Insets(8f, 5f, 8f, 5f))
-                // Vanilla's buttons and edit boxes are 20 tall with their text 6 down
-                .insets(Button.STYLE_PADDING, WIDGET_PADDING_8)
-                .insets(TextBox.STYLE_PADDING, WIDGET_PADDING_4)
-                .insets(ComboBox.STYLE_PADDING, WIDGET_PADDING_4)
-                .insets(Expander.STYLE_HEADER_PADDING, WIDGET_PADDING_4)
-                // Vanilla's multi-line edit box pads its text 4 on every side
-                .insets(TextArea.STYLE_PADDING, Insets.of(4f))
-                // Vanilla draws a slider's label 2 in from its sides and 6 down, as on its buttons
-                .insets(Slider.STYLE_PADDING, new Insets(2f, 6f, 2f, 5f))
-                .paint(ProgressBar.STYLE_TRACK, Paint.solid(0xFF000000))
-                .paint(ProgressBar.STYLE_FILL, Paint.solid(0xFF008200))
-                .textStyle(ProgressBar.STYLE_TEXT, text)
-                .paint(Separator.STYLE_LINE, Paint.solid(0xB9FFFFFF))
-                .paint(RadioButton.STYLE_NORMAL, this.paint("widget/checkbox", null))
-                .paint(RadioButton.STYLE_HOVERED, this.paint("widget/checkbox_highlighted", null))
-                .paint(RadioButton.STYLE_SELECTED, this.paint("widget/checkbox_selected", null))
-                .paint(RadioButton.STYLE_SELECTED_HOVERED, this.paint("widget/checkbox_selected_highlighted", null))
-                .textStyle(RadioButton.STYLE_TEXT, text)
-                .textStyle(RadioButton.STYLE_TEXT_DISABLED, text.withColor(0xFFA0A0A0))
-                .paint(ToggleSwitch.STYLE_TRACK, this.paint("widget/slider", SLIDER_BORDER))
-                .paint(ToggleSwitch.STYLE_TRACK_ON, this.paint("widget/slider_highlighted", SLIDER_BORDER))
-                .paint(ToggleSwitch.STYLE_KNOB, this.paint("widget/slider_handle", SLIDER_HANDLE_BORDER))
-                .paint(ToggleSwitch.STYLE_KNOB_HOVERED,
-                        this.paint("widget/slider_handle_highlighted", SLIDER_HANDLE_BORDER))
-                .textStyle(ToggleSwitch.STYLE_TEXT, text)
-                .textStyle(ToggleSwitch.STYLE_TEXT_DISABLED, text.withColor(0xFFA0A0A0))
-                .paint(TableView.STYLE_HEADER, Paint.solid(0x80000000))
-                .paint(TableView.STYLE_HEADER_HOVERED, Paint.solid(0x30FFFFFF))
-                .textStyle(TableView.STYLE_HEADER_TEXT, text)
-                .paint(TableView.STYLE_GRID, Paint.solid(0x40FFFFFF))
-                .paint(Menu.STYLE_BACKGROUND, Paint.solid(0xF0101010))
-                .paint(Menu.STYLE_ITEM_HOVERED, Paint.solid(0x60FFFFFF))
-                .textStyle(Menu.STYLE_TEXT, text)
-                .textStyle(Menu.STYLE_TEXT_DISABLED, text.withColor(0xFFA0A0A0))
-                .paint(Expander.STYLE_HEADER, this.paint("widget/button", BUTTON_BORDER))
-                .paint(Expander.STYLE_HEADER_HOVERED, this.paint("widget/button_highlighted", BUTTON_BORDER))
-                .textStyle(Expander.STYLE_TEXT, text)
-                .textStyle(Expander.STYLE_TEXT_DISABLED, text.withColor(0xFFA0A0A0))
-                .paint(GridView.STYLE_CELL, this.paint("container/slot", null))
-                .paint(GridView.STYLE_CELL_HOVERED, Paint.solid(0x80FFFFFF))
-                .textStyle(Button.STYLE_LINK_TEXT, text)
-                .textStyle(Button.STYLE_LINK_TEXT_HOVERED, text.withColor(0xFFFFFF55))
-                .textStyle(Button.STYLE_LINK_TEXT_DISABLED, text.withColor(0xFFA0A0A0))
-                .paint(ScrollBar.STYLE_SLIM_TRACK, Paint.NONE)
-                .paint(ScrollBar.STYLE_SLIM_THUMB, Paint.solid(0xFF3333AA))
-                .paint(ScrollBar.STYLE_SLIM_THUMB_HOVERED, Paint.solid(0xFFCCCCCC))
-                .paint(ScrollBar.STYLE_SLIM_THUMB_DISABLED, Paint.solid(0xFF555555))
-                .paint(BusyIndicator.STYLE_DOT, Paint.solid(0xFF404040))
-                .paint(BusyIndicator.STYLE_DOT_ACTIVE, Paint.solid(0xFF808080))
-                .textStyle(BusyIndicator.STYLE_TEXT, text)
-                .paint(TextBox.STYLE_SUGGESTIONS, Paint.solid(0xD0000000))
-                .textStyle(TextBox.STYLE_SUGGESTION_TEXT, text.withColor(0xFFAAAAAA))
-                .paint(ColorPicker.STYLE_FRAME, Paint.solid(0xFFA0A0A0))
-                .paint(ColorPicker.STYLE_MARKER, Paint.solid(0xFFFFFFFF))
-                .paint(ColorPicker.STYLE_MARKER_OUTLINE, Paint.solid(0xFF000000))
-                .paint(ColorPicker.STYLE_DISABLED, Paint.solid(0xA0000000))
-                .paint(Window.STYLE_GRIP, Paint.solid(0xFFA0A0A0))
-                .paint(Window.STYLE_GRIP_HOVERED, Paint.solid(0xFFFFFFFF))
-                .paint(Overlays.STYLE_BACKDROP, Paint.solid(0x60000000))
-                // The advancement frame as a nine-slice; toast/advancement itself has no .mcmeta and would stretch
-                .paint(Overlays.STYLE_TOAST, this.paint("toast/now_playing", Insets.of(4f)))
-                .textStyle(Overlays.STYLE_TOAST_TEXT, TextStyle.DEFAULT.withColor(0xFFFFFFFF))
-                .build();
+        final SwingThemeSource source = new SwingThemeSource(MinecraftLook.class.getClassLoader());
+        source.register(VANILLA, List.of(MinecraftLook.vanillaFile()));
+        final Theme resolved = source.resolve(ThemeRef.of(VANILLA));
+        final Theme.Builder builder = resolved.toBuilder();
+        resolved.paints().forEach((key, paint) -> builder.paint(key, this.sliced(paint)));
+        return builder.build();
+    }
+
+    /**
+     * Reads the gallery's copy of {@code vanilla.json} from the class path.
+     */
+    private static ThemeDocument vanillaFile() {
+        try (InputStream in = MinecraftLook.class.getResourceAsStream(VANILLA_FILE)) {
+            if (in == null) {
+                throw new IllegalStateException("The vanilla theme is missing from the class path: " + VANILLA_FILE);
+            }
+            return new ThemeDocument(VANILLA_FILE.substring(1), new String(in.readAllBytes(), StandardCharsets.UTF_8),
+                    "vanilla");
+        } catch (final IOException e) {
+            throw new UncheckedIOException("Cannot read the vanilla theme", e);
+        }
+    }
+
+    /**
+     * Rebuilds a paint of one of the game's sprites as the game slices it, keeping its tint. Other paints come back
+     * as they are.
+     */
+    private Paint sliced(final Paint paint) {
+        return switch (paint) {
+            case Paint.Sprite sprite when MinecraftLook.isGame(sprite.sprite()) ->
+                    MinecraftLook.tinted(this.paint(sprite.sprite(), null), sprite.tint());
+            case Paint.NineSlice slice when MinecraftLook.isGame(slice.sprite()) ->
+                    MinecraftLook.tinted(this.paint(slice.sprite(), slice.border()), slice.tint());
+            default -> paint;
+        };
+    }
+
+    private static boolean isGame(final SpriteId sprite) {
+        return "minecraft".equals(sprite.namespace());
     }
 
     /**
@@ -281,11 +173,10 @@ final class MinecraftLook {
      * image: a nine-slice of the declared size, tiled unless {@code stretch_inner} is set, a tiled sprite, or a
      * stretched one.
      *
-     * @param path the sprite's path in the {@code minecraft} namespace
+     * @param sprite one of the game's sprites
      * @param fallback the 26.3 border if the sprite is a nine-slice there, or null if it is a plain sprite
      */
-    private Paint paint(final String path, final Insets fallback) {
-        final SpriteId sprite = SpriteId.of("minecraft", path);
+    private Paint paint(final SpriteId sprite, final Insets fallback) {
         final String file = MinecraftAssets.path(sprite);
         if (this.assets.image(file).isEmpty()) {
             this.notes.add(sprite + " is missing, so it draws magenta");
