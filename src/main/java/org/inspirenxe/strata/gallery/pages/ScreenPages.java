@@ -60,8 +60,8 @@ final class ScreenPages {
                                     : "Run the gallery in a window to open these. --mocks renders them to images."),
                             AlmuraMocks.buttons(ui, context::open));
                 }),
-                new Page(SECTION, "Custom component", "A row of color swatches written on CustomComponent, the same "
-                        + "extension point the built-in controls use. Click a swatch to select it.", """
+                new Page(SECTION, "Custom component", "A row of color swatches written on CustomComponent, the base class "
+                        + "for components of your own. Click a swatch to select it.", """
                         public final class Swatch extends CustomComponent<Swatch> {
                             private final int color;
                             private boolean selected;
