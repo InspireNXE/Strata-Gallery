@@ -21,15 +21,24 @@ import org.inspirenxe.strata.api.component.Tooltip;
 import org.inspirenxe.strata.api.control.attribute.item.SingleSelection;
 import org.inspirenxe.strata.api.control.attribute.value.Ranged;
 import org.inspirenxe.strata.api.control.display.Label;
+import org.inspirenxe.strata.api.control.button.Button;
+import org.inspirenxe.strata.api.control.field.Slider;
+import org.inspirenxe.strata.api.control.field.TextBox;
 import org.inspirenxe.strata.api.control.pane.Expander;
+import org.inspirenxe.strata.api.control.pane.NavigationItem;
+import org.inspirenxe.strata.api.control.pane.NavigationView;
 import org.inspirenxe.strata.api.control.pane.ScrollBar;
 import org.inspirenxe.strata.api.control.pane.SplitPane;
 import org.inspirenxe.strata.api.control.pane.Tab;
 import org.inspirenxe.strata.api.control.pane.TabBar;
+import org.inspirenxe.strata.api.geometry.Insets;
 import org.inspirenxe.strata.api.layout.AbsolutePanel;
 import org.inspirenxe.strata.api.layout.Anchor;
+import org.inspirenxe.strata.api.layout.AnchorPanel;
+import org.inspirenxe.strata.api.layout.HorizontalAlignment;
 import org.inspirenxe.strata.api.layout.Orientation;
 import org.inspirenxe.strata.api.layout.StackPanel;
+import org.inspirenxe.strata.api.layout.VerticalAlignment;
 import org.inspirenxe.strata.api.theme.Paint;
 import org.inspirenxe.strata.gallery.Page;
 
@@ -183,6 +192,51 @@ final class PanePages {
                                             .setEnabled(false)
                                             .setSize(200, 50))));
                 }),
+                new Page(SECTION, "Navigation view", "A pane of sections at the side of a screen, with the "
+                        + "selected section's page beside it. Wide, the pane is open; narrower, it is a column of "
+                        + "icons; narrow, a bar with a toggle. The toggle opens the pane over the page.", """
+                        final NavigationView settings = ui.navigationView()
+                                .setTitle("Settings")
+                                .addHeader("Game")
+                                .addItem(ui.navigationItem("General").setIcon(gearIcon).setPage(GeneralPage::new))
+                                .addItem(ui.navigationItem("Controls").setIcon(keysIcon)
+                                        .addItem(ui.navigationItem("Keyboard").setPage(KeyboardPage::new))
+                                        .addItem(ui.navigationItem("Mouse").setPage(MousePage::new)))
+                                .addSeparator()
+                                .addItem(ui.navigationItem("Friends").setIcon(peopleIcon).setBadge(3)
+                                        .setPage(FriendsPage::new))
+                                .addFooterItem(ui.navigationItem("Sign out").setSelectable(false))
+                                .setPaneHeader(ui.textBox().setPlaceholder("Search"))
+                                .setPaneFooter(ui.avatar().setName("Ana Lima"));
+                        // Sign out only activates; the selected items show their pages
+                        settings.onEvent(Activatable.ACTIVATED, event -> {
+                            if (settings.allItems().get(event.value()).text().plain().equals("Sign out")) {
+                                this.signOut();
+                            }
+                        });
+                        """, context -> {
+                    final ComponentFactory ui = context.ui();
+                    context.watch(NavigationView.EXPAND, NavigationView.EXPANDED, NavigationView.EXPAND_ITEM,
+                            NavigationView.ITEM_EXPANDED);
+                    final NavigationView view = PanePages.settingsView(ui);
+                    final AnchorPanel frame = ui.anchorPanel().setBackground(DARK).add(view);
+                    frame.setSize(460, 250);
+                    final Slider width = ui.slider()
+                            .setRange(160, 520)
+                            .setStep(10)
+                            .setValue(460)
+                            .setLabel(value -> "Width " + (int) value)
+                            .onEvent(Ranged.CHANGED, event -> frame.setWidth(event.value().floatValue()));
+                    width.setWidth(220);
+                    final StackPanel modes = Samples.row(ui).setSpacing(4);
+                    for (final NavigationView.DisplayMode mode : NavigationView.DisplayMode.values()) {
+                        modes.add(ui.button(mode.name().charAt(0) + mode.name().substring(1).toLowerCase())
+                                .onEvent(Button.PRESSED, event -> view.setDisplayMode(mode)));
+                    }
+                    return Samples.column(ui,
+                            Samples.section(ui, "A settings screen: drag the width to see AUTO switch", frame),
+                            Samples.row(ui, width, modes).setSpacing(12));
+                }),
                 new Page(SECTION, "Scroll bar", "A scroll bar on its own, for content that scrolls itself. It is "
                         + "not focusable until told to be, so the content it scrolls keeps the keys.", """
                         final StackPanel names = ui.stackPanel().setSpacing(2);
@@ -234,6 +288,54 @@ final class PanePages {
                                             .setEnabled(false)
                                             .setWidth(120))));
                 }));
+    }
+
+    /**
+     * A settings screen's navigation: five items with icons, a header, a separator, an item with children, a badge,
+     * Sign out in the footer, a search box over the items and the user's avatar under them.
+     */
+    private static NavigationView settingsView(final ComponentFactory ui) {
+        final TextBox search = ui.textBox().setPlaceholder("Search");
+        search.setAlignment(HorizontalAlignment.STRETCH, VerticalAlignment.TOP);
+        final NavigationItem controls = ui.navigationItem("Controls")
+                .setIcon(Samples.icon(0xFFE0A030))
+                .addItem(ui.navigationItem("Keyboard").setPage(page -> PanePages.page(page, "Keyboard keys")))
+                .addItem(ui.navigationItem("Mouse").setPage(page -> PanePages.page(page, "Mouse buttons")));
+        return ui.navigationView()
+                .setTitle("Settings")
+                .addHeader("Game")
+                .addItem(ui.navigationItem("General")
+                        .setIcon(Samples.icon())
+                        .setPage(page -> PanePages.page(page, "General settings")))
+                .addItem(ui.navigationItem("Sound")
+                        .setIcon(Samples.icon(0xFF43A047))
+                        .setPage(page -> PanePages.page(page, "Volume and music")))
+                .addItem(ui.navigationItem("Display")
+                        .setIcon(Samples.icon(0xFF8E6AD8))
+                        .setPage(page -> PanePages.page(page, "Brightness and scale")))
+                .addItem(controls)
+                .addSeparator()
+                .addHeader("Social")
+                .addItem(ui.navigationItem("Friends")
+                        .setIcon(Samples.icon(0xFFE05050))
+                        .setBadge(3)
+                        .setTooltip(Tooltip.text("Three friend requests"))
+                        .setPage(page -> PanePages.page(page, "Ana, Ben and Cleo want to be friends")))
+                .addFooterItem(ui.navigationItem("Sign out").setSelectable(false))
+                .setPaneHeader(search)
+                .setPaneFooter(ui.avatar().setName("Ana Lima").setBadge(2).setMargin(Insets.of(2f)))
+                .select(0);
+    }
+
+    /**
+     * A section's page: a heading and a line about what it holds.
+     */
+    private static Component<?> page(final ComponentFactory ui, final String text) {
+        return ui.stackPanel()
+                .setSpacing(6)
+                .setPadding(10)
+                .add(Samples.heading(ui, text))
+                .add(ui.checkBox("A setting on this page"));
     }
 
     /**
