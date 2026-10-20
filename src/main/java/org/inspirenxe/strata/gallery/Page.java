@@ -42,7 +42,7 @@ public record Page(String section, String title, String summary, String code,
     }
 
     /**
-     * Returns a name for the page's snapshot file, such as {@code buttons-check-box}.
+     * Returns a name for the page's snapshot file, such as {@code buttons-checkbox}.
      *
      * @return the section and title in lower case, joined by dashes
      */

@@ -129,7 +129,7 @@ final class StoreDialogs {
     }
 
     /**
-     * One side of the list form: price, quantity, an infinite check box and the total.
+     * One side of the list form: price, quantity, an infinite checkbox and the total.
      */
     private static final class Column {
         final GridPanel panel;

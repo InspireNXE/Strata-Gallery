@@ -257,7 +257,7 @@ final class PanePages {
     }
 
     /**
-     * A few check boxes to put inside an expander.
+     * A few checkboxes to put inside an expander.
      */
     private static Component<?> filters(final ComponentFactory ui) {
         return ui.stackPanel()

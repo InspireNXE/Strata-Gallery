@@ -114,7 +114,8 @@ final class MinecraftLook {
         return Theme.builder("minecraft:vanilla")
                 .paint(Button.STYLE_NORMAL, this.paint("widget/button", BUTTON_BORDER))
                 .paint(Button.STYLE_HOVERED, this.paint("widget/button_highlighted", BUTTON_BORDER))
-                .paint(Button.STYLE_PRESSED, this.paint("widget/button_highlighted", BUTTON_BORDER))
+                // Vanilla has no pressed sprite; the highlighted one darkened, as MinecraftThemes does
+                .paint(Button.STYLE_PRESSED, tinted(this.paint("widget/button_highlighted", BUTTON_BORDER), 0xFFB0B0B0))
                 .paint(Button.STYLE_DISABLED, this.paint("widget/button_disabled", BUTTON_DISABLED_BORDER))
                 .textStyle(Button.STYLE_TEXT, text)
                 .textStyle(Button.STYLE_TEXT_DISABLED, text.withColor(0xFFA0A0A0))
@@ -243,6 +244,19 @@ final class MinecraftLook {
         final int edge = this.average(TEXTURES + "header_separator.png").orElse(0x79808080);
         return new Chrome(background, panel, Border.of(edge, 1f),
                 TextStyle.DEFAULT.withColor(0xFFFFFFFF).withShadow(true), 0xFFA0A0A0);
+    }
+
+    /**
+     * Returns a sprite paint with another tint; other paints come back as they are.
+     */
+    private static Paint tinted(final Paint paint, final int tint) {
+        return switch (paint) {
+            case Paint.Sprite sprite -> new Paint.Sprite(sprite.sprite(), tint);
+            case Paint.Tiled tiled -> new Paint.Tiled(tiled.sprite(), tiled.size(), tint);
+            case Paint.NineSlice slice -> new Paint.NineSlice(slice.sprite(), slice.border(), tint, slice.size(),
+                    slice.tiled());
+            default -> paint;
+        };
     }
 
     /**

@@ -264,7 +264,7 @@ final class WindowPages {
                                             .setTooltip("Fetch the latest prices.")),
                                     Samples.example(ui, "Label", ui.label("Fee: 2%")
                                             .setTooltip("Taken from the seller when an item sells.")),
-                                    Samples.example(ui, "Check box", ui.checkBox("Auto relist")
+                                    Samples.example(ui, "Checkbox", ui.checkBox("Auto relist")
                                             .setTooltip("List unsold items again after a day.")),
                                     Samples.example(ui, "Image", ui.image(Samples.icon())
                                             .setTooltip("A stand-in icon.")),
@@ -292,7 +292,7 @@ final class WindowPages {
     }
 
     /**
-     * A few check boxes for a settings window.
+     * A few checkboxes for a settings window.
      */
     private static Component<?> options(final ComponentFactory ui) {
         return ui.stackPanel()

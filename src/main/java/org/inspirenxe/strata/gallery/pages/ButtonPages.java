@@ -91,7 +91,7 @@ final class ButtonPages {
                                             .setItems(List.of("Easy", "Hard"))
                                             .setEnabled(false))));
                 }),
-                new Page(SECTION, "Check box", "A choice with a caption that is checked, empty, or mixed when it "
+                new Page(SECTION, "Checkbox", "A choice with a caption that is checked, empty, or mixed when it "
                         + "stands for several others that disagree. Clicking the caption changes it too.", """
                         final Label status = ui.label("");
                         final CheckBox prices = ui.checkBox("Show prices")
