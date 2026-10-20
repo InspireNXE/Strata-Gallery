@@ -16,7 +16,10 @@
 package org.inspirenxe.strata.gallery.pages;
 
 import org.inspirenxe.strata.api.ComponentFactory;
+import org.inspirenxe.strata.api.Strata;
+import org.inspirenxe.strata.api.appearance.Appearance;
 import org.inspirenxe.strata.api.component.Component;
+import org.inspirenxe.strata.api.component.Tooltip;
 import org.inspirenxe.strata.api.control.display.Image;
 import org.inspirenxe.strata.api.layout.Orientation;
 import org.inspirenxe.strata.api.text.Text;
@@ -35,7 +38,26 @@ final class DisplayPages {
     private static final String LONG_TEXT = "Ana listed three crates of apples at the morning market, and Ben bought "
             + "two of them before noon.";
 
+    static {
+        // A member shows with their picture, name and role wherever a control has no cell factory for them
+        Strata.appearances().register(Member.class, Appearance.<Member>builder()
+                .icon(member -> Samples.icon(member.color()))
+                .name(member -> Text.of(member.name()))
+                .tooltip(member -> Tooltip.text(member.name() + ", " + member.role()))
+                .build());
+    }
+
     private DisplayPages() {
+    }
+
+    /**
+     * A member of a market, shown through its appearance.
+     *
+     * @param name the member's name
+     * @param role what the member does
+     * @param color the color of the member's stand-in picture
+     */
+    record Member(String name, String role, int color) {
     }
 
     static List<Page> pages() {
@@ -124,6 +146,45 @@ final class DisplayPages {
                                     Samples.example(ui, "Half alpha", ui.image(Samples.icon())
                                             .setImageSize(32, 32)
                                             .setTint(0x80FFFFFF))));
+                }),
+                new Page(SECTION, "Avatar", "Who someone or something is, in a small square: a picture, or else "
+                        + "initials from a name, or else a placeholder, with an optional badge for a count or a status. "
+                        + "It takes no input and fires no events.", """
+                        // A value with an appearance shows its icon and its tooltip; without an icon, its initials
+                        final Avatar seller = ui.avatar(member).setAvatarSize(32);
+                        // Initials come from the first and last words of the name
+                        final Avatar ana = ui.avatar().setName("Ana Lima").setBadge(3);
+                        // A picture of your own, and a status dot in place of the count
+                        final Avatar team = ui.avatar()
+                                .setSprite(SpriteId.of("shop", "team"))
+                                .setGroup(true)
+                                .setBadgeVisual(onlineDot);
+                        panel.add(seller).add(ana).add(team);
+                        """, context -> {
+                    final ComponentFactory ui = context.ui();
+                    final Member fay = new Member("Fay Ito", "seller", 0xFF43A047);
+                    return Samples.column(ui,
+                            Samples.section(ui, "Pictures",
+                                    Samples.example(ui, "A visual", ui.avatar().setVisual(Samples.icon(0xFFE0A030))),
+                                    Samples.example(ui, "A value with an appearance", ui.avatar(fay)),
+                                    Samples.example(ui, "A group, no picture or name", ui.avatar().setGroup(true))),
+                            Samples.section(ui, "Initials",
+                                    Samples.example(ui, "Ana Lima", ui.avatar().setName("Ana Lima")),
+                                    Samples.example(ui, "Ben", ui.avatar().setName("Ben")),
+                                    Samples.example(ui, "Cleo Dev", ui.avatar().setName("Cleo Dev")),
+                                    Samples.example(ui, "Set by hand", ui.avatar().setInitials("Q"))),
+                            Samples.section(ui, "Badges",
+                                    Samples.example(ui, "A count of 3", ui.avatar().setName("Ana Lima").setBadge(3)),
+                                    Samples.example(ui, "A count of 120", ui.avatar().setName("Ben").setBadge(120)),
+                                    Samples.example(ui, "A status dot", ui.avatar(fay)
+                                            .setBadgeVisual(Samples.icon(0xFF43A047)))),
+                            Samples.section(ui, "Sizes",
+                                    Samples.example(ui, "16 units", ui.avatar().setName("Cleo Dev").setAvatarSize(16)),
+                                    Samples.example(ui, "24 units", ui.avatar().setName("Cleo Dev").setBadge(5)),
+                                    Samples.example(ui, "48 units", ui.avatar().setName("Cleo Dev").setBadge(5)
+                                            .setAvatarSize(48)),
+                                    Samples.example(ui, "48 units, a picture", ui.avatar(fay).setAvatarSize(48)
+                                            .setBadge(12))));
                 }),
                 new Page(SECTION, "Progress bar", "A bar filled from the left to show how far a value is through its "
                         + "range, with an optional caption. When the length of the work is unknown, it shows a moving "
