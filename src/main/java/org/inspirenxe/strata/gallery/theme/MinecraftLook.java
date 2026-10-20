@@ -29,6 +29,7 @@ import org.inspirenxe.strata.api.control.display.ProgressBar;
 import org.inspirenxe.strata.api.control.display.Separator;
 import org.inspirenxe.strata.api.control.field.ColorPicker;
 import org.inspirenxe.strata.api.control.field.Slider;
+import org.inspirenxe.strata.api.control.field.TextArea;
 import org.inspirenxe.strata.api.control.field.TextBox;
 import org.inspirenxe.strata.api.control.menu.Menu;
 import org.inspirenxe.strata.api.control.pane.Expander;
@@ -69,6 +70,14 @@ import java.util.Set;
  */
 final class MinecraftLook {
     private static final Insets BUTTON_BORDER = Insets.of(3f);
+    /**
+     * A vanilla button's text sits 6 below its top in a 20-tall widget, so a line of 9 leaves 5 below.
+     */
+    private static final Insets WIDGET_PADDING_8 = new Insets(8f, 6f, 8f, 5f);
+    /**
+     * The same top and bottom with vanilla's 4 at the sides, as an edit box draws its text.
+     */
+    private static final Insets WIDGET_PADDING_4 = new Insets(4f, 6f, 4f, 5f);
     private static final Insets BUTTON_DISABLED_BORDER = Insets.of(1f);
     private static final Insets FIELD_BORDER = Insets.of(1f);
     private static final Insets SLIDER_BORDER = Insets.of(1f);
@@ -168,6 +177,13 @@ final class MinecraftLook {
                 // both paddings are 10 tall, so tabs are a line plus 10, nearer vanilla's 24
                 .insets(TabBar.STYLE_PADDING, new Insets(8f, 7f, 8f, 3f))
                 .insets(TabBar.STYLE_PADDING_SELECTED, new Insets(8f, 5f, 8f, 5f))
+                // Vanilla's buttons and edit boxes are 20 tall with their text 6 down
+                .insets(Button.STYLE_PADDING, WIDGET_PADDING_8)
+                .insets(TextBox.STYLE_PADDING, WIDGET_PADDING_4)
+                .insets(ComboBox.STYLE_PADDING, WIDGET_PADDING_4)
+                .insets(Expander.STYLE_HEADER_PADDING, WIDGET_PADDING_4)
+                // Vanilla's multi-line edit box pads its text 4 on every side
+                .insets(TextArea.STYLE_PADDING, Insets.of(4f))
                 .paint(ProgressBar.STYLE_TRACK, Paint.solid(0xFF000000))
                 .paint(ProgressBar.STYLE_FILL, Paint.solid(0xFF008200))
                 .textStyle(ProgressBar.STYLE_TEXT, text)
