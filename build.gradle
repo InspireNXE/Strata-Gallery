@@ -35,3 +35,16 @@ tasks.named('test') {
 application {
     mainClass = 'org.inspirenxe.strata.gallery.Gallery'
 }
+
+// One jar with everything the gallery needs, so java -jar runs it
+tasks.named('jar', Jar) {
+    manifest {
+        attributes('Main-Class': application.mainClass.get())
+    }
+    dependsOn(configurations.runtimeClasspath)
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    exclude('META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/*.RSA')
+}
