@@ -21,6 +21,19 @@ Without a display, render every page to a PNG, or the mock-ups in a dozen states
 
 `./gradlew build` also runs a test that renders every page.
 
+## Minecraft's look
+
+When Minecraft Java Edition is installed, a selector beside the page title switches the gallery to the vanilla look, so you can see how Strata screens look in game without starting it. The gallery reads the GUI sprites, their `.png.mcmeta` slicing, the menu backgrounds and the default font straight out of the newest release's client jar and the launcher's asset index, and the selector offers each resource pack in the install's `resourcepacks` folder too, its files over the game's. Nothing is copied into this repository. It looks in `%APPDATA%\.minecraft`, `~/Library/Application Support/minecraft` or `~/.minecraft`, or wherever `-Dstrata.gallery.minecraft=<directory>` points.
+
+Snapshots take the look with `--theme`:
+
+```bash
+./gradlew run --args="--snapshot snapshots --theme minecraft"
+./gradlew run --args="--snapshot snapshots --theme minecraft:<pack>"
+```
+
+The gallery draws at 1.5 pixels per unit, so the game's font and sprites, which the game draws at whole multiples, look uneven in places. Font providers other than bitmaps and spaces, such as Unifont, are not read; their characters fall back to Dialog.
+
 ## Adding a page
 
 Each section is a class in `org.inspirenxe.strata.gallery.pages` whose `pages()` returns one `Page` per control: a section, a title, a short summary and a function that builds the content from a `PageContext`. `Samples` has the captioned examples, rows and sample data the pages share. The log hears every attribute event (`Toggle`, `Ranged`, `SingleSelection` and the rest) on its own. Call `context.watch` for a control's own events, and `context.log` for events from overlays such as menus and dialogs, which sit outside the page.

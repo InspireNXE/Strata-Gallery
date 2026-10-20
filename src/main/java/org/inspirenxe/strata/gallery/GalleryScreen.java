@@ -19,6 +19,7 @@ import org.inspirenxe.strata.api.ComponentFactory;
 import org.inspirenxe.strata.api.component.Component;
 import org.inspirenxe.strata.api.control.attribute.item.SingleSelection;
 import org.inspirenxe.strata.api.control.button.Button;
+import org.inspirenxe.strata.api.control.collection.ComboBox;
 import org.inspirenxe.strata.api.control.collection.ListView;
 import org.inspirenxe.strata.api.control.collection.TreeView;
 import org.inspirenxe.strata.api.control.display.Label;
@@ -31,31 +32,32 @@ import org.inspirenxe.strata.api.layout.ScrollPanel;
 import org.inspirenxe.strata.api.layout.StackPanel;
 import org.inspirenxe.strata.api.layout.VerticalAlignment;
 import org.inspirenxe.strata.api.screen.Screen;
-import org.inspirenxe.strata.api.text.TextStyle;
-import org.inspirenxe.strata.api.theme.Border;
-import org.inspirenxe.strata.api.theme.Paint;
+import org.inspirenxe.strata.gallery.theme.Chrome;
+import org.inspirenxe.strata.gallery.theme.ThemeChoice;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /**
  * The gallery: a sidebar of pages grouped by section, the selected page, a snippet that shows how to use it, and the
- * log of the events its controls fire.
+ * log of the events its controls fire. In a window it also offers the looks it can switch to.
  */
 public final class GalleryScreen implements Screen {
-    private static final Paint BACKGROUND = Paint.gradient(0xFF1E1F22, 0xFF111214);
-    private static final Paint PANEL = Paint.solid(0xFF2B2D31);
-    private static final Border PANEL_BORDER = Border.of(0xFF3F4147, 1f);
-    private static final int MUTED = 0xFFB5BAC1;
     private static final int USAGE_LINES = 12;
 
     private final List<Page> pages;
     private final Consumer<Screen> open;
     private final Page first;
+    private final Chrome chrome;
+    private final List<ThemeChoice> themes;
+    private final ThemeChoice theme;
+    private final BiConsumer<ThemeChoice, Page> switchTheme;
     private ComponentFactory ui;
+    private Page current;
     private Label title;
     private Label summary;
     private ScrollPanel body;
@@ -71,9 +73,30 @@ public final class GalleryScreen implements Screen {
      * @param first the page shown first
      */
     public GalleryScreen(final List<Page> pages, final Consumer<Screen> open, final Page first) {
+        this(pages, open, first, Chrome.FLAT, List.of(), ThemeChoice.FLAT, null);
+    }
+
+    /**
+     * Creates the gallery in a look, with a selector for the others when there is more than one.
+     *
+     * @param pages every page, in sidebar order
+     * @param open shows a whole screen over the gallery, or {@code null} while rendering snapshots
+     * @param first the page shown first
+     * @param chrome the gallery's own frame for this look
+     * @param themes the looks the selector offers
+     * @param theme the look the gallery is in
+     * @param switchTheme switches to another look, given the page to show, or {@code null} for no selector
+     */
+    public GalleryScreen(final List<Page> pages, final Consumer<Screen> open, final Page first, final Chrome chrome,
+                         final List<ThemeChoice> themes, final ThemeChoice theme,
+                         final BiConsumer<ThemeChoice, Page> switchTheme) {
         this.pages = List.copyOf(pages);
         this.open = open;
         this.first = first;
+        this.chrome = chrome;
+        this.themes = List.copyOf(themes);
+        this.theme = theme;
+        this.switchTheme = switchTheme;
     }
 
     @Override
@@ -86,7 +109,8 @@ public final class GalleryScreen implements Screen {
         this.ui = ui;
         final List<Object> sections = new ArrayList<>(GalleryScreen.sections(this.pages));
         final TreeView<Object> sidebar = ui.<Object>treeView(item -> ui.label(item.toString())
-                        .setStyle(item instanceof Section ? TextStyle.DEFAULT.withColor(MUTED) : TextStyle.DEFAULT)
+                        .setStyle(item instanceof Section ? this.chrome.text().withColor(this.chrome.muted())
+                                : this.chrome.text())
                         .setAnchor(Anchor.MIDDLE_LEFT))
                 .setChildren(item -> item instanceof final Section section ? section.pages() : List.of())
                 .setItems(sections)
@@ -99,10 +123,10 @@ public final class GalleryScreen implements Screen {
                 .ifPresent(this::show));
 
         this.title = ui.label("")
-                .setStyle(TextStyle.DEFAULT.withBold(true))
+                .setStyle(this.chrome.text().withBold(true))
                 .setTextScale(1.5f);
         this.summary = ui.label("")
-                .setStyle(TextStyle.DEFAULT.withColor(MUTED))
+                .setStyle(this.chrome.text().withColor(this.chrome.muted()))
                 .setWrap(true)
                 .setAlignment(HorizontalAlignment.STRETCH, VerticalAlignment.TOP);
         this.body = ui.scrollPanel()
@@ -113,13 +137,13 @@ public final class GalleryScreen implements Screen {
                 .setWrap(false)
                 .setHighlighter(JavaHighlighter.INSTANCE)
                 .setAlignment(HorizontalAlignment.STRETCH, VerticalAlignment.TOP);
-        this.usagePanel = GalleryScreen.panel(ui)
+        this.usagePanel = this.panel()
                 .rows(GridLength.auto(), GridLength.auto())
                 .columns(GridLength.weighted(1), GridLength.auto())
                 .setSpacing(4, 4)
-                .add(ui.label("Usage").setStyle(TextStyle.DEFAULT.withBold(true)).setAnchor(Anchor.MIDDLE_LEFT), 0, 0)
+                .add(ui.label("Usage").setStyle(this.chrome.text().withBold(true)).setAnchor(Anchor.MIDDLE_LEFT), 0, 0)
                 .add(ui.label("ui is the ComponentFactory passed to Screen.build, and panel is a StackPanel")
-                        .setStyle(TextStyle.DEFAULT.withColor(MUTED))
+                        .setStyle(this.chrome.text().withColor(this.chrome.muted()))
                         .setAnchor(Anchor.MIDDLE_RIGHT), 0, 1)
                 .add(this.usage, 1, 0, 1, 2)
                 .setAlignment(HorizontalAlignment.STRETCH, VerticalAlignment.TOP);
@@ -131,11 +155,11 @@ public final class GalleryScreen implements Screen {
         this.log = new EventLog(lines);
         final Button clear = ui.button("Clear")
                 .onEvent(Button.PRESSED, event -> this.log.clear());
-        final Component<?> logPanel = GalleryScreen.panel(ui)
+        final Component<?> logPanel = this.panel()
                 .rows(GridLength.auto(), GridLength.weighted(1))
                 .columns(GridLength.weighted(1), GridLength.auto())
                 .setSpacing(4, 4)
-                .add(ui.label("Events").setStyle(TextStyle.DEFAULT.withBold(true)).setAnchor(Anchor.MIDDLE_LEFT), 0, 0)
+                .add(ui.label("Events").setStyle(this.chrome.text().withBold(true)).setAnchor(Anchor.MIDDLE_LEFT), 0, 0)
                 .add(clear, 0, 1)
                 .add(lines, 1, 0, 1, 2)
                 .setAnchor(Anchor.FILL);
@@ -145,9 +169,9 @@ public final class GalleryScreen implements Screen {
                         GridLength.fixed(120))
                 .columns(GridLength.weighted(1))
                 .setSpacing(0, 6)
-                .add(this.title, 0, 0)
+                .add(this.heading(), 0, 0)
                 .add(this.summary, 1, 0)
-                .add(GalleryScreen.panel(ui).add(this.body, 0, 0).setAnchor(Anchor.FILL), 2, 0)
+                .add(this.panel().add(this.body, 0, 0).setAnchor(Anchor.FILL), 2, 0)
                 .add(this.usagePanel, 3, 0)
                 .add(logPanel, 4, 0)
                 .setAnchor(Anchor.FILL);
@@ -157,9 +181,9 @@ public final class GalleryScreen implements Screen {
                 .rows(GridLength.weighted(1))
                 .setSpacing(8, 0)
                 .setPadding(8)
-                .add(GalleryScreen.panel(ui).add(sidebar, 0, 0).setAnchor(Anchor.FILL), 0, 0)
+                .add(this.panel().add(sidebar, 0, 0).setAnchor(Anchor.FILL), 0, 0)
                 .add(page, 0, 1)
-                .setBackground(BACKGROUND)
+                .setBackground(this.chrome.background())
                 .setAnchor(Anchor.FILL);
 
         sidebar.selectItem(this.first);
@@ -171,6 +195,7 @@ public final class GalleryScreen implements Screen {
      * Shows a page: its heading, a fresh build of its content, its snippet, and an empty log that listens to it.
      */
     private void show(final Page page) {
+        this.current = page;
         this.title.setText(page.title());
         this.summary.setText(page.summary());
         final String code = page.code().strip();
@@ -198,13 +223,39 @@ public final class GalleryScreen implements Screen {
         return this.log.lines();
     }
 
-    private static GridPanel panel(final ComponentFactory ui) {
-        return ui.gridPanel()
+    /**
+     * The page title, with the theme selector beside it when there are looks to switch to.
+     */
+    private Component<?> heading() {
+        if (this.switchTheme == null || this.themes.size() < 2) {
+            return this.title;
+        }
+        final ComboBox<ThemeChoice> selector = this.ui.<ThemeChoice>comboBox(ThemeChoice::label)
+                .setItems(this.themes)
+                .selectItem(this.theme)
+                .setAnchor(Anchor.MIDDLE_RIGHT);
+        selector.onEvent(SingleSelection.SELECTED, event -> selector.selected()
+                .filter(choice -> !choice.equals(this.theme))
+                .ifPresent(choice -> this.switchTheme.accept(choice, this.current)));
+        return this.ui.gridPanel()
+                .columns(GridLength.weighted(1), GridLength.auto(), GridLength.auto())
+                .rows(GridLength.auto())
+                .setSpacing(6, 0)
+                .add(this.title.setAnchor(Anchor.MIDDLE_LEFT), 0, 0)
+                .add(this.ui.label("Theme")
+                        .setStyle(this.chrome.text().withColor(this.chrome.muted()))
+                        .setAnchor(Anchor.MIDDLE_RIGHT), 0, 1)
+                .add(selector, 0, 2)
+                .setAlignment(HorizontalAlignment.STRETCH, VerticalAlignment.TOP);
+    }
+
+    private GridPanel panel() {
+        return this.ui.gridPanel()
                 .columns(GridLength.weighted(1))
                 .rows(GridLength.weighted(1))
                 .setPadding(4)
-                .setBackground(PANEL)
-                .setBorder(PANEL_BORDER);
+                .setBackground(this.chrome.panel())
+                .setBorder(this.chrome.panelBorder());
     }
 
     /**
