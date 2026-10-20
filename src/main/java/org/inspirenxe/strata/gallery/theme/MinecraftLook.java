@@ -139,7 +139,6 @@ final class MinecraftLook {
                 .textStyle(CheckBox.STYLE_TEXT, text)
                 .textStyle(CheckBox.STYLE_TEXT_DISABLED, text.withColor(0xFFA0A0A0))
                 .paint(Slider.STYLE_TRACK, this.paint("widget/slider", SLIDER_BORDER))
-                .paint(Slider.STYLE_TRACK_FOCUSED, this.paint("widget/slider_highlighted", SLIDER_BORDER))
                 .paint(Slider.STYLE_THUMB, this.paint("widget/slider_handle", SLIDER_HANDLE_BORDER))
                 .paint(Slider.STYLE_THUMB_HOVERED, this.paint("widget/slider_handle_highlighted", SLIDER_HANDLE_BORDER))
                 .textStyle(Slider.STYLE_TEXT, text)
