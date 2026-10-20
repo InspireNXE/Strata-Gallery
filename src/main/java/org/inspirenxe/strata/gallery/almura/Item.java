@@ -16,7 +16,7 @@
 package org.inspirenxe.strata.gallery.almura;
 
 import org.inspirenxe.strata.api.component.Tooltip;
-import org.inspirenxe.strata.api.text.TextSpan;
+import org.inspirenxe.strata.api.text.Text;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -44,12 +44,12 @@ record Item(String name, int color, Shape shape, int maxStack, String category) 
      * @return the tooltip
      */
     Tooltip tooltip() {
-        final List<List<TextSpan>> lines = new ArrayList<>();
-        lines.add(List.of(Look.span(this.name, Look.WHITE)));
+        final List<Text> lines = new ArrayList<>();
+        lines.add(Look.span(this.name, Look.WHITE));
         if (this.maxStack < 64) {
-            lines.add(List.of(Look.span("Stacks to " + this.maxStack, Look.GRAY)));
+            lines.add(Look.span("Stacks to " + this.maxStack, Look.GRAY));
         }
-        lines.add(List.of(new TextSpan("Almura", Look.text(0xFF5555FF).withItalic(true))));
+        lines.add(Text.of("Almura", Look.text(0xFF5555FF).withItalic(true)));
         return Tooltip.lines(lines);
     }
 

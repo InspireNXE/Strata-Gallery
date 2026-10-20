@@ -19,8 +19,8 @@ import org.inspirenxe.strata.api.ComponentFactory;
 import org.inspirenxe.strata.api.component.Component;
 import org.inspirenxe.strata.api.control.display.Image;
 import org.inspirenxe.strata.api.layout.Orientation;
+import org.inspirenxe.strata.api.text.Text;
 import org.inspirenxe.strata.api.text.TextOverflow;
-import org.inspirenxe.strata.api.text.TextSpan;
 import org.inspirenxe.strata.api.text.TextStyle;
 import org.inspirenxe.strata.api.theme.Paint;
 import org.inspirenxe.strata.gallery.Page;
@@ -41,16 +41,16 @@ final class DisplayPages {
     static List<Page> pages() {
         return List.of(
                 new Page(SECTION, "Label", "Text the user reads but does not edit. A label can wrap, cut itself "
-                        + "short with an ellipsis, mix styles in spans and draw larger or smaller.", """
+                        + "short with an ellipsis, mix styles in one text and draw larger or smaller.", """
                         final Label title = ui.label("Fresh pears")
                                 .setStyle(TextStyle.DEFAULT.withBold(true))
                                 .setTextScale(1.5f);
                         final Label note = ui.label("Ana listed three crates of apples at the morning market.")
                                 .setWrap(true)
                                 .setWidth(180);
-                        final Label price = ui.label().setSpans(List.of(
-                                new TextSpan("125.50", TextStyle.DEFAULT.withColor(0xFFE8C547)),
-                                new TextSpan(" per crate from Cleo", TextStyle.DEFAULT)));
+                        final Label price = ui.label(Text.of("125.50").color(0xFFE8C547).bold()
+                                .append(" per crate from ")
+                                .append(Text.of("Cleo").underline()));
                         final Label seller = ui.label("Sold by a seller with a very long name")
                                 .setOverflow(TextOverflow.ELLIPSIS)
                                 .setWidth(120);
@@ -58,8 +58,6 @@ final class DisplayPages {
                         panel.add(title).add(note).add(price).add(seller);
                         """, context -> {
                     final ComponentFactory ui = context.ui();
-                    final TextStyle gold = TextStyle.DEFAULT.withColor(0xFFE8C547).withBold(true);
-                    final TextStyle gray = TextStyle.DEFAULT.withColor(Samples.MUTED);
                     return Samples.column(ui,
                             Samples.section(ui, "Text",
                                     Samples.example(ui, "Plain", ui.label("Fresh pears")),
@@ -70,11 +68,10 @@ final class DisplayPages {
                                     Samples.example(ui, "Ellipsis at 120 units", ui.label(DisplayPages.LONG_TEXT)
                                             .setOverflow(TextOverflow.ELLIPSIS)
                                             .setWidth(120))),
-                            Samples.section(ui, "Spans and scale",
-                                    Samples.example(ui, "Spans", ui.label().setSpans(List.of(
-                                            new TextSpan("125.50", gold),
-                                            new TextSpan(" per crate from ", gray),
-                                            new TextSpan("Cleo", TextStyle.DEFAULT.withUnderline(true))))),
+                            Samples.section(ui, "Styled text and scale",
+                                    Samples.example(ui, "Styled text", ui.label(Text.of("125.50").color(0xFFE8C547).bold()
+                                            .append(Text.of(" per crate from ").color(Samples.MUTED))
+                                            .append(Text.of("Cleo").underline()))),
                                     Samples.example(ui, "Scale 0.8", ui.label("Small print").setTextScale(0.8f)),
                                     Samples.example(ui, "Scale 1.5", ui.label("Larger").setTextScale(1.5f)),
                                     Samples.example(ui, "Scale 2", ui.label("Title").setTextScale(2f))),

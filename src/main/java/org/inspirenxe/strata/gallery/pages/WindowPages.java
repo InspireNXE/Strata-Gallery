@@ -33,7 +33,7 @@ import org.inspirenxe.strata.api.layout.Orientation;
 import org.inspirenxe.strata.api.layout.StackPanel;
 import org.inspirenxe.strata.api.layout.VerticalAlignment;
 import org.inspirenxe.strata.api.overlay.Overlay;
-import org.inspirenxe.strata.api.text.TextSpan;
+import org.inspirenxe.strata.api.text.Text;
 import org.inspirenxe.strata.api.text.TextStyle;
 import org.inspirenxe.strata.api.theme.Border;
 import org.inspirenxe.strata.api.theme.Paint;
@@ -238,8 +238,8 @@ final class WindowPages {
                                 .setTooltip("Fetch the latest prices.");
                         final Button lamp = ui.button("Brass lamp")
                                 .setTooltip(Tooltip.lines(List.of(
-                                        List.of(TextSpan.of("Brass lamp").withStyle(TextStyle.DEFAULT.withBold(true))),
-                                        List.of(TextSpan.of("Price: "), TextSpan.of("40 coins")))));
+                                        Text.of("Brass lamp").bold(),
+                                        Text.of("Price: ").append(Text.of("40 coins").color(0xFFF0C050)))));
                         // A component tooltip is built when it shows, with the factory it is given
                         final Button ben = ui.button("Ben")
                                 .setTooltip(Tooltip.of(factory -> factory.stackPanel()
@@ -249,13 +249,10 @@ final class WindowPages {
                         panel.add(refresh).add(lamp).add(ben);
                         """, context -> {
                     final ComponentFactory ui = context.ui();
-                    final TextStyle gold = TextStyle.DEFAULT.withColor(0xFFF0C050);
-                    final TextStyle muted = TextStyle.DEFAULT.withColor(Samples.MUTED);
                     final Tooltip styled = Tooltip.lines(List.of(
-                            List.of(TextSpan.of("Brass lamp").withStyle(gold.withBold(true))),
-                            List.of(TextSpan.of("Price: ").withStyle(muted), TextSpan.of("40 coins")),
-                            List.of(TextSpan.of("Seller: ").withStyle(muted), TextSpan.of("Cleo")
-                                    .withStyle(TextStyle.DEFAULT.withItalic(true)))));
+                            Text.of("Brass lamp").color(0xFFF0C050).bold(),
+                            Text.of("Price: ").color(Samples.MUTED).append(Text.of("40 coins")),
+                            Text.of("Seller: ").color(Samples.MUTED).append(Text.of("Cleo").italic())));
                     final Component<?> area = ui.anchorPanel()
                             .setBackground(SLOT)
                             .setTooltip("Containers take tooltips too.")

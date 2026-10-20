@@ -76,7 +76,7 @@ final class PanePages {
                             .select(0)
                             .setWidth(300);
                     sides.onEvent(SingleSelection.SELECTED, event -> shown.setText(
-                            "Sell".equals(sides.selected().map(Tab::text).orElse(""))
+                            "Sell".equals(sides.selected().map(tab -> tab.text().plain()).orElse(""))
                                     ? "Showing what you have listed."
                                     : "Showing what is for sale."));
                     final StackPanel withContent = ui.stackPanel()

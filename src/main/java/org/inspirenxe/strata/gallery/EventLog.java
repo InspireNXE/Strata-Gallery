@@ -30,6 +30,7 @@ import org.inspirenxe.strata.api.event.Event;
 import org.inspirenxe.strata.api.event.EventType;
 import org.inspirenxe.strata.api.event.control.ValueEvent;
 import org.inspirenxe.strata.api.event.control.ValueRequestEvent;
+import org.inspirenxe.strata.api.text.Text;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -113,12 +114,15 @@ final class EventLog {
         if (value instanceof final Component<?> component) {
             final String type = component.getClass().getSimpleName().replace("Impl", "");
             if (component instanceof final HasText<?> text && !text.text().isEmpty()) {
-                return type + " \"" + text.text() + "\"";
+                return type + " \"" + text.text().plain() + "\"";
             }
             return type;
         }
         if (value instanceof final HasText<?> text) {
-            return "\"" + text.text() + "\"";
+            return "\"" + text.text().plain() + "\"";
+        }
+        if (value instanceof final Text text) {
+            return "\"" + text.plain() + "\"";
         }
         return String.valueOf(value);
     }

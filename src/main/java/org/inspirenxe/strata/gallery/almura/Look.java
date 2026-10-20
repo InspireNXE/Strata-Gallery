@@ -29,8 +29,8 @@ import org.inspirenxe.strata.api.layout.HorizontalAlignment;
 import org.inspirenxe.strata.api.layout.Orientation;
 import org.inspirenxe.strata.api.layout.StackPanel;
 import org.inspirenxe.strata.api.layout.VerticalAlignment;
+import org.inspirenxe.strata.api.text.Text;
 import org.inspirenxe.strata.api.text.TextOverflow;
-import org.inspirenxe.strata.api.text.TextSpan;
 import org.inspirenxe.strata.api.text.TextStyle;
 import org.inspirenxe.strata.api.theme.Border;
 import org.inspirenxe.strata.api.theme.Paint;
@@ -38,7 +38,6 @@ import org.inspirenxe.strata.api.theme.Paint;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
-import java.util.List;
 
 /**
  * Almura's look and its number formats, shared by the Exchange and Store mock-ups. The colors follow Almura's
@@ -67,8 +66,8 @@ final class Look {
         return TextStyle.DEFAULT.withColor(color);
     }
 
-    static TextSpan span(final String text, final int color) {
-        return new TextSpan(text, text(color));
+    static Text span(final String text, final int color) {
+        return Text.of(text, text(color));
     }
 
     static Label label(final ComponentFactory ui, final String text, final int color) {
@@ -79,9 +78,8 @@ final class Look {
     /**
      * A label made of colored runs, cut short with dots when it does not fit.
      */
-    static Label rich(final ComponentFactory ui, final TextSpan... spans) {
-        return ui.label("")
-                .setSpans(List.of(spans))
+    static Label rich(final ComponentFactory ui, final Text... parts) {
+        return ui.label(Text.concat(parts))
                 .setOverflow(TextOverflow.ELLIPSIS);
     }
 
