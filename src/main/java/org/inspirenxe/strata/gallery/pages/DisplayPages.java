@@ -20,8 +20,11 @@ import org.inspirenxe.strata.api.Strata;
 import org.inspirenxe.strata.api.appearance.Appearance;
 import org.inspirenxe.strata.api.component.Component;
 import org.inspirenxe.strata.api.component.Tooltip;
+import org.inspirenxe.strata.api.control.button.Button;
 import org.inspirenxe.strata.api.control.display.Image;
+import org.inspirenxe.strata.api.control.display.InfoBar;
 import org.inspirenxe.strata.api.layout.Orientation;
+import org.inspirenxe.strata.api.layout.StackPanel;
 import org.inspirenxe.strata.api.text.Text;
 import org.inspirenxe.strata.api.text.TextOverflow;
 import org.inspirenxe.strata.api.text.TextStyle;
@@ -185,6 +188,45 @@ final class DisplayPages {
                                             .setAvatarSize(48)),
                                     Samples.example(ui, "48 units, a picture", ui.avatar(fay).setAvatarSize(48)
                                             .setBadge(12))));
+                }),
+                new Page(SECTION, "Info bar", "A strip in the layout that tells the user something about the "
+                        + "screen, with a severity, a title, a message, an optional action and a close button. It "
+                        + "stays until it is closed; a closed bar takes no space.", """
+                        final InfoBar failed = ui.infoBar(InfoBar.Severity.ERROR, "Not saved",
+                                        "The server did not answer.")
+                                .setAction("Try again", this::save);
+                        // Asked before the user closes it; cancel to keep it open
+                        failed.onEvent(Closable.CLOSE, event -> {
+                            if (this.saving) {
+                                event.cancel();
+                            }
+                        });
+                        panel.add(failed);
+
+                        // Later, from code: shows it again and reports OPENED
+                        failed.open();
+                        """, context -> {
+                    final ComponentFactory ui = context.ui();
+                    final List<InfoBar> bars = List.of(
+                            ui.infoBar(InfoBar.Severity.INFO, "Market day", "Stalls open at nine."),
+                            ui.infoBar(InfoBar.Severity.SUCCESS, "Saved", "Your prices are up to date."),
+                            ui.infoBar(InfoBar.Severity.WARNING, "Low stock", "Only three crates of pears are left."),
+                            ui.infoBar(InfoBar.Severity.ERROR, "Not saved", "The server did not answer.")
+                                    .setAction("Try again", () -> context.log("Trying again")),
+                            ui.infoBar(InfoBar.Severity.INFO, "A long message", DisplayPages.LONG_TEXT + " "
+                                    + DisplayPages.LONG_TEXT),
+                            ui.infoBar(InfoBar.Severity.WARNING, "Not closable", "This one closes only from code.")
+                                    .setClosable(false));
+                    final Button reopen = ui.button("Open them again")
+                            .onEvent(Button.PRESSED, event -> bars.forEach(InfoBar::open));
+                    final Button closeAll = ui.button("Close them from code")
+                            .onEvent(Button.PRESSED, event -> bars.forEach(InfoBar::close));
+                    final StackPanel column = ui.stackPanel().setSpacing(4).setWidth(420);
+                    bars.forEach(column::add);
+                    return Samples.column(ui,
+                            Samples.section(ui, "Severities, a long message, an action and one that is not closable",
+                                    column),
+                            Samples.row(ui, reopen, closeAll));
                 }),
                 new Page(SECTION, "Progress bar", "A bar filled from the left to show how far a value is through its "
                         + "range, with an optional caption. When the length of the work is unknown, it shows a moving "
