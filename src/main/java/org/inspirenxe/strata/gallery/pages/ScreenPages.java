@@ -17,6 +17,7 @@ package org.inspirenxe.strata.gallery.pages;
 
 import org.inspirenxe.strata.api.ComponentFactory;
 import org.inspirenxe.strata.api.component.Component;
+import org.inspirenxe.strata.api.component.registry.ComponentId;
 import org.inspirenxe.strata.api.control.attribute.item.ItemSource;
 import org.inspirenxe.strata.api.control.attribute.item.Selection;
 import org.inspirenxe.strata.api.control.attribute.text.HasText;
@@ -27,6 +28,7 @@ import org.inspirenxe.strata.api.control.attribute.value.Toggle;
 import org.inspirenxe.strata.api.control.button.Button;
 import org.inspirenxe.strata.api.control.collection.ComboBox;
 import org.inspirenxe.strata.api.control.display.InfoBar;
+import org.inspirenxe.strata.api.control.field.Slider;
 import org.inspirenxe.strata.api.control.pane.Expander;
 import org.inspirenxe.strata.api.state.Source;
 import org.inspirenxe.strata.api.state.State;
@@ -112,6 +114,44 @@ final class ScreenPages {
                     return Samples.column(ui,
                             Samples.example(ui, "Swatches", new Swatches(ui, 0xFFE06C75, 0xFFE5C07B, 0xFF98C379,
                                     0xFF61AFEF, 0xFFC678DD)));
+                }),
+                new Page(SECTION, "Registered components", "Components made from the registry instead of with new. "
+                        + "The swatches come from the gallery's own ComponentLibrary, by type and by id. The meter "
+                        + "asks for a gauge from a library that is not installed, falls back to a progress bar, and "
+                        + "is driven through Ranged, the attribute both share.", """
+                        // A library lists this in META-INF/services; nobody calls it
+                        public final class GalleryLibrary implements ComponentLibrary {
+                            public static final ComponentId SWATCHES = ComponentId.of("gallery", "swatches");
+
+                            @Override
+                            public void register(final ComponentRegistry registry) {
+                                registry.register(SWATCHES, Swatches.class, Swatches::new);
+                            }
+                        }
+
+                        // Anyone with a factory makes it, by type or by id
+                        final Swatches byType = ui.create(Swatches.class);
+                        final Component<?> byId = ui.create(GalleryLibrary.SWATCHES);
+
+                        // A component from a library that may be missing, used through its attributes
+                        final Component<?> meter = ui.tryCreate(ComponentId.of("fancy", "gauge"))
+                                .orElseGet(ui::progressBar);
+                        if (meter instanceof Ranged<?> ranged) {
+                            ui.slider().onEvent(Ranged.CHANGED, event -> ranged.setValue(event.value()));
+                        }
+                        """, context -> {
+                    final ComponentFactory ui = context.ui();
+                    context.watch(Ranged.CHANGE, Ranged.CHANGED);
+                    final Component<?> meter = ui.tryCreate(ComponentId.of("fancy", "gauge")).orElseGet(ui::progressBar);
+                    final Slider level = ui.slider();
+                    if (meter instanceof Ranged<?> ranged) {
+                        level.onEvent(Ranged.CHANGED, event -> ranged.setValue(event.value()));
+                    }
+                    return Samples.column(ui,
+                            Samples.example(ui, "By type", ui.create(Swatches.class)),
+                            Samples.example(ui, "By id", ui.create(GalleryLibrary.SWATCHES)),
+                            Samples.example(ui, "Missing gauge, so a progress bar", meter),
+                            Samples.example(ui, "Drives it", level));
                 }),
                 new Page(SECTION, "Data binding", "Controls bound to a small model of states. Change one control and "
                         + "the others bound to the same state follow before the next frame; Reset sets the states "

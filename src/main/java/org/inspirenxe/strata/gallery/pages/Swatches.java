@@ -34,6 +34,13 @@ final class Swatches extends CustomComponent<Swatches> {
     private final int[] colors;
     private int selected;
 
+    /**
+     * Makes a row of five swatches, as {@link GalleryLibrary} registers it.
+     */
+    Swatches(final ComponentFactory ui) {
+        this(ui, 0xFFE06C75, 0xFFE5C07B, 0xFF98C379, 0xFF61AFEF, 0xFFC678DD);
+    }
+
     Swatches(final ComponentFactory ui, final int... colors) {
         super(ui);
         this.colors = colors.clone();
