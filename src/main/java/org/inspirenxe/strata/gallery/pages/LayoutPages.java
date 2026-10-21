@@ -18,6 +18,9 @@ package org.inspirenxe.strata.gallery.pages;
 import org.inspirenxe.strata.api.ComponentFactory;
 import org.inspirenxe.strata.api.component.Component;
 import org.inspirenxe.strata.api.control.button.Button;
+import org.inspirenxe.strata.api.control.display.Label;
+import org.inspirenxe.strata.api.control.window.Window;
+import org.inspirenxe.strata.api.event.input.InputEvents;
 import org.inspirenxe.strata.api.layout.AbsolutePanel;
 import org.inspirenxe.strata.api.layout.Anchor;
 import org.inspirenxe.strata.api.layout.AnchorPanel;
@@ -32,11 +35,14 @@ import org.inspirenxe.strata.api.theme.Border;
 import org.inspirenxe.strata.api.theme.Paint;
 import org.inspirenxe.strata.gallery.Page;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
- * The Layout section: the panels that place components, the spacer, and margin and padding. Colored panels stand
- * in for content so each slot shows.
+ * The Layout section: the panels that place components, the order siblings draw in, the spacer, and margin and
+ * padding. Colored panels stand in for content so each slot shows.
  */
 final class LayoutPages {
     private static final String SECTION = "Layout";
@@ -218,7 +224,7 @@ final class LayoutPages {
                                             layered.setSize(240, 120)))));
                 }),
                 new Page(SECTION, "Absolute panel", "Places each child at a position you give, at its desired size. "
-                        + "Children can overlap; later ones draw on top.", """
+                        + "Children can overlap; later ones draw on top unless their order is changed.", """
                         final Label marker = ui.label("B");
                         // Each child sits at the position given, at its desired size; later ones draw on top
                         final AbsolutePanel board = ui.absolutePanel()
@@ -247,6 +253,108 @@ final class LayoutPages {
                                     Samples.example(ui, "B sits under C, which was added later",
                                             LayoutPages.frame(ui, board)),
                                     Samples.example(ui, "move(child, x, y)", move)));
+                }),
+                new Page(SECTION, "Sibling order", "Children draw by z index and then in the order they were added, "
+                        + "raised or lowered, apart from the layout order. A window comes to the front when it is "
+                        + "pressed.", """
+                        final AbsolutePanel desk = ui.absolutePanel().setSize(360, 170);
+                        final Window ana = ui.window("Ana").setSize(150, 90);
+                        final Window ben = ui.window("Ben").setSize(150, 90);
+                        // A window comes to the front of its siblings when pressed
+                        desk.add(ana, 10, 10).add(ben, 90, 40);
+                        // A higher z index stays on top, whatever is raised
+                        final Window notes = ui.window("Notes").setSize(110, 70).setZIndex(1);
+                        desk.add(notes, 240, 20);
+                        // Or order siblings from code; children() keeps the layout order
+                        desk.raise(ana).lower(ben);
+                        final Label status = ui.label("");
+                        desk.onEvent(InputEvents.POINTER_PRESS, event ->
+                                status.setText("Drawn bottom first: " + desk.paintOrder()));
+                        """, context -> {
+                    final ComponentFactory ui = context.ui();
+                    final Map<Component<?>, String> names = new HashMap<>();
+                    final AbsolutePanel desk = ui.absolutePanel();
+                    final String[] people = {"Ana", "Ben", "Cleo"};
+                    for (int i = 0; i < people.length; i++) {
+                        final Window window = ui.window(people[i])
+                                .add(ui.label("Press me").setAnchor(Anchor.CENTER))
+                                .setSize(150, 90);
+                        names.put(window, people[i]);
+                        desk.add(window, 10 + 70 * i, 10 + 30 * i);
+                    }
+                    final Window notes = ui.window("Notes")
+                            .add(ui.label("z index 1").setAnchor(Anchor.CENTER))
+                            .setSize(110, 70)
+                            .setZIndex(1);
+                    names.put(notes, "Notes");
+                    desk.add(notes, 240, 20);
+                    final Window still = ui.window("Still")
+                            .add(ui.label("Not raised").setAnchor(Anchor.CENTER))
+                            .setSize(110, 70)
+                            .setRaiseOnPress(false);
+                    names.put(still, "Still");
+                    // First in children(), under every sibling when drawn
+                    desk.insert(0, still).move(still, 260f, 85f).lower(still);
+                    desk.setSize(380, 160);
+                    final Label deskOrder = ui.label("Drawn bottom first: " + LayoutPages.order(desk, names));
+                    desk.onEvent(InputEvents.POINTER_PRESS, event -> {
+                        final String order = LayoutPages.order(desk, names);
+                        deskOrder.setText("Drawn bottom first: " + order);
+                        context.log("press: drawn bottom first " + order);
+                    });
+
+                    final Map<Component<?>, String> cardNames = new HashMap<>();
+                    final AnchorPanel a = LayoutPages.box(ui, "A", BLUE, 90, 50);
+                    final AnchorPanel b = LayoutPages.box(ui, "B  z 1", GREEN, 90, 50).setZIndex(1);
+                    final AnchorPanel c = LayoutPages.box(ui, "C", PURPLE, 90, 50);
+                    cardNames.put(a, "A");
+                    cardNames.put(b, "B");
+                    cardNames.put(c, "C");
+                    final AbsolutePanel cards = ui.absolutePanel()
+                            .add(a, 10, 10)
+                            .add(b, 50, 30)
+                            .add(c, 90, 50)
+                            .setSize(200, 120);
+                    final Label cardOrder = ui.label("");
+                    final Runnable show = () -> cardOrder.setText("Drawn bottom first: "
+                            + LayoutPages.order(cards, cardNames));
+                    show.run();
+                    final Button raise = ui.button("Raise A").onEvent(Button.PRESSED, event -> {
+                        cards.raise(a);
+                        show.run();
+                        context.log("raise(A): drawn bottom first " + LayoutPages.order(cards, cardNames));
+                    });
+                    final Button lower = ui.button("Lower C").onEvent(Button.PRESSED, event -> {
+                        cards.lower(c);
+                        show.run();
+                        context.log("lower(C): drawn bottom first " + LayoutPages.order(cards, cardNames));
+                    });
+                    final Button zIndex = ui.button("B z index -1, 0, 1").onEvent(Button.PRESSED, event -> {
+                        final int next = b.zIndex() >= 1 ? -1 : b.zIndex() + 1;
+                        b.setZIndex(next);
+                        ((Label) b.children().getFirst()).setText("B  z " + next);
+                        show.run();
+                        context.log("B.setZIndex(" + next + "): drawn bottom first "
+                                + LayoutPages.order(cards, cardNames));
+                    });
+                    return Samples.column(ui,
+                            Samples.section(ui, "Windows come to the front",
+                                    ui.stackPanel()
+                                            .setSpacing(4)
+                                            .add(LayoutPages.frame(ui, desk))
+                                            .add(deskOrder)
+                                            .add(Samples.note(ui, "Press a window to raise it among its siblings. "
+                                                    + "Notes has z index 1, so raised windows stay under it. Still "
+                                                    + "turns raising on press off.").setMaxSize(380, Float.POSITIVE_INFINITY))),
+                            Samples.section(ui, "Z index, raise and lower",
+                                    Samples.example(ui, "B has z index 1, so it draws over C",
+                                            LayoutPages.frame(ui, cards)),
+                                    ui.stackPanel()
+                                            .setSpacing(4)
+                                            .add(raise)
+                                            .add(lower)
+                                            .add(zIndex)
+                                            .add(cardOrder)));
                 }),
                 new Page(SECTION, "Scroll panel", "Shows part of content larger than itself, with scroll bars that "
                         + "appear as needed. By default it scrolls only up and down, and the wheel scrolls it.", """
@@ -419,6 +527,14 @@ final class LayoutPages {
                 .setBorder(OUTLINE)
                 .setPadding(1)
                 .add(content);
+    }
+
+    /**
+     * Names a panel's children in drawing order, bottom first.
+     */
+    private static String order(final AbsolutePanel panel, final Map<Component<?>, String> names) {
+        return panel.paintOrder().stream().map(child -> names.getOrDefault(child, "?"))
+                .collect(Collectors.joining(", "));
     }
 
     /**
