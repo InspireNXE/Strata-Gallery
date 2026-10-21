@@ -26,7 +26,7 @@ import java.util.Set;
 /**
  * Colors Java source for the Usage panel: keywords, strings and characters, comments, numbers, annotations and
  * capitalized names, all in the monospaced font. It is sample code for {@link TextHighlighter}, written for the short
- * snippets the gallery shows, not a full Java lexer: it does not know text blocks, unicode escapes or generics.
+ * snippets the gallery shows, not a full Java lexer: it does not know text blocks, Unicode escapes or generics.
  *
  * <p>Every style is derived from the field's base style, so the theme's shadow and the rest carry through, and the
  * whole text is covered by runs so plain code and indentation are monospaced too.</p>

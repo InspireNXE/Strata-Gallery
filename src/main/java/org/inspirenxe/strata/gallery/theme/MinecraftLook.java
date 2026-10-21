@@ -63,7 +63,7 @@ final class MinecraftLook {
     private static final String TEXTURES = "assets/minecraft/textures/gui/";
     private static final int BACKDROP_WIDTH = 960;
     private static final int BACKDROP_HEIGHT = 540;
-    // Vanilla blurs the panorama; shrinking it this much and smoothing it back up is close
+    // Vanilla blurs the panorama; shrinking it this much and smoothing it back up comes close
     private static final int BLUR = 16;
 
     private final MinecraftAssets assets;

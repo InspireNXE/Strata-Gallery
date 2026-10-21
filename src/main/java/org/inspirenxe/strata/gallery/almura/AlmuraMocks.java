@@ -47,7 +47,7 @@ public final class AlmuraMocks {
     }
 
     /**
-     * Returns the buttons that open each mock-up, for the sandbox's demo screen.
+     * Returns the buttons that open each mock-up, for the gallery's Almura mock-ups page.
      *
      * @param ui the factory
      * @param open pushes a screen
@@ -139,8 +139,8 @@ public final class AlmuraMocks {
     }
 
     /**
-     * Makes the stack lay out, and settle rows a list built during the first layout, by moving the pointer to a
-     * corner.
+     * Moves the pointer to a corner twice: the first move lays the stack out, and the second settles the rows a list
+     * built during that layout.
      */
     private static void layout(final ScreenStack stack) {
         stack.pointerMoved(0, 0, Modifiers.NONE);

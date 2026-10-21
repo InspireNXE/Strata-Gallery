@@ -23,7 +23,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Stand-in item icons for the sandbox: 16 by 16 images drawn from a color and a shape, shown through Swing visuals
+ * Stand-in item icons for the gallery: 16 by 16 images drawn from a color and a shape, shown through Swing visuals
  * the way a game adapter would show its items through its own.
  */
 final class Icons {

@@ -36,7 +36,7 @@ The gallery draws at 1.5 pixels per unit, so the game's font and sprites, which 
 
 ## Adding a page
 
-Each section is a class in `org.inspirenxe.strata.gallery.pages` whose `pages()` returns one `Page` per control: a section, a title, a short summary and a function that builds the content from a `PageContext`. `Samples` has the captioned examples, rows and sample data the pages share. The log hears every attribute event (`Toggle`, `Ranged`, `SingleSelection` and the rest) on its own. Call `context.watch` for a control's own events, and `context.log` for events from overlays such as menus and dialogs, which sit outside the page.
+Each section is a class in `org.inspirenxe.strata.gallery.pages` whose `pages()` returns one `Page` per control: a section, a title, a short summary and a function that builds the content from a `PageContext`. `Samples` has the captioned examples, rows and sample data the pages share. The log hears every attribute event (`Toggle`, `Ranged`, `SingleSelection` and the rest) on its own. Call `context.watch` for a control's own events. Overlays such as menus, flyouts and dialogs sit outside the page, so pass a popup to `context.watchPopup` to log its events, or call `context.log` from a handler for anything else.
 
 ## License
 
