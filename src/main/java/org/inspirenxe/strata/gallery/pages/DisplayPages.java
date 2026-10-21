@@ -29,6 +29,7 @@ import org.inspirenxe.strata.api.text.Text;
 import org.inspirenxe.strata.api.text.TextOverflow;
 import org.inspirenxe.strata.api.text.TextStyle;
 import org.inspirenxe.strata.api.theme.Paint;
+import org.inspirenxe.strata.api.theme.SpriteId;
 import org.inspirenxe.strata.gallery.Page;
 
 import java.util.List;
@@ -100,6 +101,18 @@ final class DisplayPages {
                                     Samples.example(ui, "Scale 0.8", ui.label("Small print").setTextScale(0.8f)),
                                     Samples.example(ui, "Scale 1.5", ui.label("Larger").setTextScale(1.5f)),
                                     Samples.example(ui, "Scale 2", ui.label("Title").setTextScale(2f))),
+                            Samples.section(ui, "Pictures in text",
+                                    Samples.example(ui, "A visual at its size", ui.label(Text.concat(
+                                            Text.visual(Samples.icon()), Text.of(" Fresh pears")))),
+                                    Samples.example(ui, "A sprite as tall as the text", ui.label(Text.of("Costs 12 ")
+                                            .append(Text.sprite(SpriteId.of("gallery", "coin")))
+                                            .append(" each"))),
+                                    Samples.example(ui, "Wrapped", ui.label(Text.concat(Text.visual(Samples.icon()),
+                                                    Text.of(" Ana listed three crates of "),
+                                                    Text.visual(Samples.icon(0xFF5BB974)),
+                                                    Text.of(" apples at the morning market.")))
+                                            .setWrap(true)
+                                            .setWidth(180))),
                             Samples.section(ui, "Styles",
                                     Samples.example(ui, "Bold", ui.label("Bold")
                                             .setStyle(TextStyle.DEFAULT.withBold(true))),
