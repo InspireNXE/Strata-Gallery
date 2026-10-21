@@ -1,12 +1,14 @@
+<p align="center"><img src=".github/assets/logo.svg" width="128" alt="Strata Gallery logo"></p>
+
 # Strata Gallery
 
-Every [Strata](../Strata) control on a page of its own, running on Strata's Java2D adapter from [Strata-Swing](../Strata-Swing). Pick a control in the sidebar to see its kinds and states, try it, and watch the events it fires in the log under the page. Requests (the events a handler can refuse) show with a question mark and the value asked for; reports show the change.
+Every [Strata](https://github.com/InspireNXE/Strata) control on a page of its own, running on the Java2D adapter from [Strata-Swing](https://github.com/InspireNXE/Strata-Swing). Pick a control in the sidebar to see its kinds and states, try it, and watch the events it fires in the log under the page. Requests, the events a handler can refuse, show with a question mark and the value asked for. Reports show the change.
 
-The sidebar follows the packages the controls live in: Display, Buttons, Fields, Collections, Menus, Panes, Windows and Layout. The Screens section holds mock-ups of Almura's Exchange and Store screens, which are the reference for what Strata has to support, and a component written from scratch on `CustomComponent`.
+The Screens section holds mock-ups of Almura's Exchange and Store screens, which set the bar for what Strata has to support, and a component written from scratch on `CustomComponent`.
 
-Pages use the API only, as a mod or game would. The gallery builds against the Strata and Strata-Swing checkouts beside it, at `../Strata` and `../Strata-Swing`, so check all three out side by side. Nothing is published yet.
+## Running
 
-Building needs JDK 25.
+Building needs JDK 25 and the Strata and Strata-Swing checkouts beside this one, at `../Strata` and `../Strata-Swing`.
 
 ```bash
 ./gradlew run
@@ -23,20 +25,11 @@ Without a display, render every page to a PNG, or the mock-ups in a dozen states
 
 ## Minecraft's look
 
-When Minecraft Java Edition is installed, a selector beside the page title switches the gallery to the vanilla look, so you can see how Strata screens look in game without starting it. The gallery reads the GUI sprites, their `.png.mcmeta` slicing, the menu backgrounds and the default font straight out of the newest release's client jar and the launcher's asset index, and the selector offers each resource pack in the install's `resourcepacks` folder too, its files over the game's. Nothing is copied into this repository. It looks in `%APPDATA%\.minecraft`, `~/Library/Application Support/minecraft` or `~/.minecraft`, or wherever `-Dstrata.gallery.minecraft=<directory>` points.
-
-Snapshots take the look with `--theme`:
-
-```bash
-./gradlew run --args="--snapshot snapshots --theme minecraft"
-./gradlew run --args="--snapshot snapshots --theme minecraft:<pack>"
-```
-
-The gallery draws at 1.5 pixels per unit, so the game's font and sprites, which the game draws at whole multiples, look uneven in places. Font providers other than bitmaps and spaces, such as Unifont, are not read; their characters fall back to Dialog.
+When Minecraft Java Edition is installed, a selector beside the page title switches the gallery to the vanilla look, and to any resource pack in the install. The gallery reads the sprites, menu backgrounds and font straight out of the game's files, and nothing is copied into this repository. It looks in the default install folder, or wherever `-Dstrata.gallery.minecraft=<directory>` points. Snapshots take the look with `--theme minecraft` or `--theme minecraft:<pack>`.
 
 ## Adding a page
 
-Each section is a class in `org.inspirenxe.strata.gallery.pages` whose `pages()` returns one `Page` per control: a section, a title, a short summary and a function that builds the content from a `PageContext`. `Samples` has the captioned examples, rows and sample data the pages share. The log hears every attribute event (`Toggle`, `Ranged`, `SingleSelection` and the rest) on its own. Call `context.watch` for a control's own events. Overlays such as menus, flyouts and dialogs sit outside the page, so pass a popup to `context.watchPopup` to log its events, or call `context.log` from a handler for anything else.
+Each section is a class in `org.inspirenxe.strata.gallery.pages` whose `pages()` returns one `Page` per control. `Samples` holds the shared examples and sample data. The log hears every attribute event on its own. Call `context.watch` for a control's own events, `context.watchPopup` for an overlay, or `context.log` from a handler.
 
 ## License
 
