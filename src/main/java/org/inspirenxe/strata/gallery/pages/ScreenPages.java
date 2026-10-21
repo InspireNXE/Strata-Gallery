@@ -63,8 +63,8 @@ final class ScreenPages {
                             }
                         }
 
-                        // The host shows screens; on Swing, push it onto a StrataPanel's screen stack
-                        host.screens().push(new OrderScreen());
+                        // Opens wherever the platform shows screens; on Swing, on the panel marked with setDefault()
+                        Strata.screens().open(new OrderScreen());
                         """, context -> {
                     final ComponentFactory ui = context.ui();
                     return Samples.column(ui,

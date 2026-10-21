@@ -167,6 +167,8 @@ public final class Gallery {
         }
 
         void open() {
+            // Strata.screens() opens on this panel. The gallery pushes its own screens, so they follow theme changes
+            this.panel.setDefault();
             this.panel.screens().push(this.screen(this.pages.getFirst()));
             final JFrame frame = new JFrame("Strata Gallery");
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
