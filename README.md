@@ -4,21 +4,20 @@
 
 Every [Strata](https://github.com/InspireNXE/Strata) control on a page of its own, running on the Java2D adapter from [Strata-Swing](https://github.com/InspireNXE/Strata-Swing). Pick a control in the sidebar to see its kinds and states, try it, and watch the events it fires in the log under the page. Requests, the events a handler can refuse, show with a question mark and the value asked for. Reports show the change.
 
-The Screens section holds mock-ups of Almura's Exchange and Store screens, which set the bar for what Strata has to support, and a component written from scratch on `CustomComponent`.
+The Screens section holds a component written from scratch on `CustomComponent`.
 
 ## Running
 
-Building needs JDK 25 and the Strata and Strata-Swing checkouts beside this one, at `../Strata` and `../Strata-Swing`.
+Building needs JDK 25. With Strata or Strata-Swing checked out beside this one, at `../Strata` and `../Strata-Swing`, the gallery builds against them; otherwise it takes them from Maven Central.
 
 ```bash
 ./gradlew run
 ```
 
-Without a display, render every page to a PNG, or the mock-ups in a dozen states:
+Without a display, render every page to a PNG:
 
 ```bash
 ./gradlew run --args="--snapshot snapshots"
-./gradlew run --args="--mocks snapshots/mocks"
 ```
 
 `./gradlew build` also runs a test that renders every page.

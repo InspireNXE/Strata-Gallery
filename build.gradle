@@ -6,6 +6,20 @@ description = 'A gallery of every Strata control, running on the Java2D adapter.
 
 repositories {
     mavenCentral()
+    // Strata's snapshots, when Strata and Strata-Swing are not checked out beside the gallery
+    maven {
+        name = 'CentralSnapshots'
+        url = uri('https://central.sonatype.com/repository/maven-snapshots/')
+        mavenContent {
+            snapshotsOnly()
+            includeGroup('org.inspirenxe')
+        }
+    }
+}
+
+// Check for a newer Strata snapshot on every build instead of trusting a cached one for a day
+configurations.configureEach {
+    resolutionStrategy.cacheChangingModulesFor(0, 'seconds')
 }
 
 java {

@@ -15,8 +15,6 @@
  */
 package org.inspirenxe.strata.gallery;
 
-import org.inspirenxe.strata.api.theme.Themes;
-import org.inspirenxe.strata.gallery.almura.AlmuraMocks;
 import org.inspirenxe.strata.gallery.pages.Pages;
 import org.inspirenxe.strata.gallery.theme.GalleryLook;
 import org.inspirenxe.strata.gallery.theme.SwitchableFont;
@@ -37,7 +35,7 @@ import javax.swing.SwingUtilities;
 
 /**
  * Opens the gallery in a window. {@code --snapshot <directory>} renders every page to a PNG instead, without a
- * display, and {@code --mocks <directory>} renders the Almura mock-ups in several states.
+ * display.
  *
  * <p>The gallery uses Strata's flat theme unless {@code --theme minecraft} or {@code --theme minecraft:<pack>} asks
  * for Minecraft's look, read from the Minecraft install on this computer. In a window, a selector beside the page
@@ -48,7 +46,7 @@ public final class Gallery {
     private static final int WIDTH = 1400;
     private static final int HEIGHT = 900;
     private static final String USAGE = "Usage: gallery [--theme flat|minecraft|minecraft:<pack>] "
-            + "[--snapshot <directory> | --mocks <directory>]";
+            + "[--snapshot <directory>]";
 
     private Gallery() {
     }
@@ -61,13 +59,6 @@ public final class Gallery {
                     ? ThemeChoice.FLAT
                     : Gallery.choose(themeId, ThemeChoice.available());
             Gallery.snapshots(new File(rest.get(1)), theme);
-            return;
-        }
-        if (rest.size() == 2 && rest.get(0).equals("--mocks")) {
-            if (themeId != null) {
-                Gallery.fail("--mocks renders with the flat theme only");
-            }
-            AlmuraMocks.snapshots(new File(rest.get(1)), Themes.flat());
             return;
         }
         if (!rest.isEmpty()) {

@@ -11,19 +11,22 @@ plugins {
 
 rootProject.name = 'Strata-Gallery'
 
-// Strata is not published yet, so the gallery builds against the sibling checkout
-includeBuild('../Strata') {
-    dependencySubstitution {
-        ['api', 'spi', 'core'].each { name ->
-            substitute(module("org.inspirenxe:strata-${name}")).using(project(":${name}"))
+// Strata and the Java2D/Swing adapter, from the checkouts beside this one when they are there, so changes to them show
+// at once. Without them, strata_version comes from Maven Central.
+if (file('../Strata/settings.gradle').exists()) {
+    includeBuild('../Strata') {
+        dependencySubstitution {
+            ['api', 'spi', 'core'].each { name ->
+                substitute(module("org.inspirenxe:strata-${name}")).using(project(":${name}"))
+            }
         }
     }
 }
-
-// The Java2D/Swing adapter, from the Strata-Swing checkout beside this one
-includeBuild('../Strata-Swing') {
-    dependencySubstitution {
-        substitute(module('org.inspirenxe:strata-swing')).using(project(':'))
+if (file('../Strata-Swing/settings.gradle').exists()) {
+    includeBuild('../Strata-Swing') {
+        dependencySubstitution {
+            substitute(module('org.inspirenxe:strata-swing')).using(project(':'))
+        }
     }
 }
 
