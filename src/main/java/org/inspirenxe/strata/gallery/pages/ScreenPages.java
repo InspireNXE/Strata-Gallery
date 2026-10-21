@@ -16,7 +16,20 @@
 package org.inspirenxe.strata.gallery.pages;
 
 import org.inspirenxe.strata.api.ComponentFactory;
+import org.inspirenxe.strata.api.component.Component;
+import org.inspirenxe.strata.api.control.attribute.item.ItemSource;
+import org.inspirenxe.strata.api.control.attribute.item.Selection;
+import org.inspirenxe.strata.api.control.attribute.text.HasText;
+import org.inspirenxe.strata.api.control.attribute.text.TextInput;
+import org.inspirenxe.strata.api.control.attribute.value.Ranged;
+import org.inspirenxe.strata.api.control.attribute.value.Toggle;
+import org.inspirenxe.strata.api.control.button.Button;
+import org.inspirenxe.strata.api.control.collection.ComboBox;
+import org.inspirenxe.strata.api.state.Source;
+import org.inspirenxe.strata.api.state.State;
+import org.inspirenxe.strata.api.text.Text;
 import org.inspirenxe.strata.gallery.Page;
+import org.inspirenxe.strata.gallery.PageContext;
 import org.inspirenxe.strata.gallery.almura.AlmuraMocks;
 
 import java.util.List;
@@ -95,6 +108,91 @@ final class ScreenPages {
                     return Samples.column(ui,
                             Samples.example(ui, "Swatches", new Swatches(ui, 0xFFE06C75, 0xFFE5C07B, 0xFF98C379,
                                     0xFF61AFEF, 0xFFC678DD)));
-                }));
+                }),
+                new Page(SECTION, "Data binding", "Controls bound to a small model of states. Change one control and "
+                        + "the others bound to the same state follow before the next frame; Reset sets the states "
+                        + "from code, which the log shows as reports with no requests.", """
+                        final class SettingsModel {
+                            final State<Boolean> music = State.of(true);
+                            final State<Double> volume = State.of(0.8);
+                            final State<String> name = State.of("Ana");
+                            final State<String> sort = State.of("Price");
+
+                            boolean canSave() {
+                                return !this.name.get().isBlank();
+                            }
+                        }
+
+                        final SettingsModel model = new SettingsModel();
+                        // Two way: a State and a key whose control reports changes
+                        ui.checkBox("Music").bind(Toggle.SELECTED, model.music);
+                        ui.toggleSwitch("Music").bind(Toggle.SELECTED, model.music);
+                        ui.slider().bind(Ranged.VALUE, model.volume)
+                                .bind(Component.ENABLED, model.music);
+                        ui.textBox().bind(TextInput.TEXT, model.name);
+                        ui.<String>comboBox().setItems(List.of("Name", "Price", "Seller"))
+                                .bind(Selection.selectedItem(), model.sort);
+                        // One way: computed sources
+                        ui.label().bind(HasText.TEXT, () -> Text.of("Hello, " + model.name.get()));
+                        ui.button("Save").bind(Component.ENABLED, model::canSave);
+                        """, ScreenPages::dataBinding));
+    }
+
+    /**
+     * The model the data binding page binds its controls to.
+     */
+    private static final class SettingsModel {
+        private final State<Boolean> music = State.of(true);
+        private final State<Double> volume = State.of(0.8);
+        private final State<String> name = State.of("Ana");
+        private final State<List<String>> sorts = State.of(List.of("Name", "Price", "Seller"));
+        private final State<String> sort = State.of("Price");
+
+        private boolean canSave() {
+            return !this.name.get().isBlank();
+        }
+
+        private void reset() {
+            this.music.set(true);
+            this.volume.set(0.8);
+            this.name.set("Ana");
+            this.sort.set("Price");
+        }
+    }
+
+    private static Component<?> dataBinding(final PageContext context) {
+        final ComponentFactory ui = context.ui();
+        final SettingsModel model = new SettingsModel();
+        final Source<Text> summary = () -> Text.of((model.music.get() ? "Music on" : "Music off") + " at "
+                + Math.round(model.volume.get() * 100d) + "%, sorted by " + model.sort.get() + ", for "
+                + model.name.get());
+        final ComboBox<String> sort = ui.<String>comboBox()
+                .bind(ItemSource.itemsKey(), model.sorts)
+                .bind(Selection.selectedItem(), model.sort);
+        return Samples.column(ui,
+                Samples.section(ui, "One state, two controls",
+                        Samples.example(ui, "Checkbox", ui.checkBox("Music").bind(Toggle.SELECTED, model.music)),
+                        Samples.example(ui, "Toggle switch", ui.toggleSwitch("Music")
+                                .bind(Toggle.SELECTED, model.music))),
+                Samples.section(ui, "Values",
+                        Samples.example(ui, "Volume, enabled while music is on", ui.slider().setWidth(140f)
+                                .setStep(0.05d)
+                                .bind(Ranged.VALUE, model.volume)
+                                .bind(Component.ENABLED, model.music)),
+                        Samples.example(ui, "The same volume", ui.progressBar().setWidth(140f)
+                                .bind(Ranged.VALUE, model.volume)),
+                        Samples.example(ui, "Sort by", sort)),
+                Samples.section(ui, "Text",
+                        Samples.example(ui, "Name", ui.textBox().setWidth(140f).bind(TextInput.TEXT, model.name)),
+                        Samples.example(ui, "Greeting, computed", ui.label()
+                                .bind(HasText.TEXT, () -> Text.of("Hello, " + model.name.get())))),
+                Samples.section(ui, "Computed",
+                        Samples.example(ui, "Summary of every state", ui.label().bind(HasText.TEXT, summary)),
+                        Samples.example(ui, "Enabled while the name is not blank", ui.button("Save")
+                                .bind(Component.ENABLED, model::canSave)
+                                .onEvent(Button.PRESSED, event -> context.log("saved for " + model.name.get())))),
+                Samples.section(ui, "From code",
+                        Samples.example(ui, "Sets every state back", ui.button("Reset")
+                                .onEvent(Button.PRESSED, event -> model.reset()))));
     }
 }
