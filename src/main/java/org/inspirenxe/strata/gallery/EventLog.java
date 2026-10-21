@@ -32,6 +32,7 @@ import org.inspirenxe.strata.api.control.button.Button;
 import org.inspirenxe.strata.api.control.collection.ListView;
 import org.inspirenxe.strata.api.event.Event;
 import org.inspirenxe.strata.api.event.EventType;
+import org.inspirenxe.strata.api.event.cause.Origin;
 import org.inspirenxe.strata.api.event.control.ValueEvent;
 import org.inspirenxe.strata.api.event.control.ValueRequestEvent;
 import org.inspirenxe.strata.api.text.Text;
@@ -41,7 +42,8 @@ import java.util.List;
 
 /**
  * The list under each page that shows the events its controls fire, newest first. Requests (Pre events) show with a
- * question mark and the value the user asked for; reports (Post events) show the change.
+ * question mark and the value the user asked for; reports (Post events) show the change. Every line ends with the
+ * event's origin: the user, code, a binding, or another person.
  */
 final class EventLog {
     /**
@@ -112,6 +114,12 @@ final class EventLog {
             line.append("   ").append(EventLog.describe(report.previous())).append(" -> ")
                     .append(EventLog.describe(report.value()));
         }
+        line.append("   by ").append(switch (event.origin()) {
+            case Origin.User _ -> "user";
+            case Origin.Remote remote -> "remote " + remote.identity();
+            case Origin.Binding _ -> "binding";
+            case Origin.Code _ -> "code";
+        });
         this.add(line.toString());
     }
 

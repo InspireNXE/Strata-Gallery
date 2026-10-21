@@ -66,7 +66,8 @@ class GalleryTest {
                     stack.pointerMoved(0, 0, Modifiers.NONE);
                     GalleryTest.click(stack, button[0].bounds());
                 });
-        assertEquals(List.of("button.pressed   Button \"Go\"", "button.press   Button \"Go\""), screen.logLines());
+        assertEquals(List.of("button.pressed   Button \"Go\"   by user", "button.press   Button \"Go\"   by user"),
+                screen.logLines());
     }
 
     @Test
@@ -80,10 +81,10 @@ class GalleryTest {
                     stack.pointerMoved(0, 0, Modifiers.NONE);
                     GalleryTest.click(stack, button[0].bounds());
                 });
-        // Rendering ends by closing the screen, which closes the menu too
-        assertEquals(List.of("closable.closed   DropDownButton \"Sort\"", "closable.closed   Menu",
-                "openable.opened   DropDownButton \"Sort\"", "openable.opened   Menu",
-                "openable.open   DropDownButton \"Sort\""), screen.logLines());
+        // Rendering ends by closing the screen from code, which closes the menu too
+        assertEquals(List.of("closable.closed   DropDownButton \"Sort\"   by code", "closable.closed   Menu   by code",
+                "openable.opened   DropDownButton \"Sort\"   by user", "openable.opened   Menu   by user",
+                "openable.open   DropDownButton \"Sort\"   by user"), screen.logLines());
     }
 
     private static void click(final ScreenStack stack, final Rect bounds) {
