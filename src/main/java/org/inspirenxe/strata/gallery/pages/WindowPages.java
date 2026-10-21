@@ -147,7 +147,7 @@ final class WindowPages {
                         ask.onEvent(Button.PRESSED, press -> {
                             final MessageBox box = ui.messageBox()
                                     .setTitle("Sell")
-                                    .setMessage("Sell the brass lamp for 40 coins?")
+                                    .setText("Sell the brass lamp for 40 coins?")
                                     .setButtons(MessageBox.Buttons.YES_NO)
                                     .setButtonText(MessageBox.Result.YES, "Sell")
                                     .setButtonText(MessageBox.Result.NO, "Keep it")
