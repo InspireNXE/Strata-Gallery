@@ -21,10 +21,13 @@ import org.inspirenxe.strata.api.control.attribute.item.ItemSource;
 import org.inspirenxe.strata.api.control.attribute.item.Selection;
 import org.inspirenxe.strata.api.control.attribute.text.HasText;
 import org.inspirenxe.strata.api.control.attribute.text.TextInput;
+import org.inspirenxe.strata.api.control.attribute.value.HasDate;
 import org.inspirenxe.strata.api.control.attribute.value.Ranged;
 import org.inspirenxe.strata.api.control.attribute.value.Toggle;
 import org.inspirenxe.strata.api.control.button.Button;
 import org.inspirenxe.strata.api.control.collection.ComboBox;
+import org.inspirenxe.strata.api.control.display.InfoBar;
+import org.inspirenxe.strata.api.control.pane.Expander;
 import org.inspirenxe.strata.api.state.Source;
 import org.inspirenxe.strata.api.state.State;
 import org.inspirenxe.strata.api.text.Text;
@@ -32,6 +35,7 @@ import org.inspirenxe.strata.gallery.Page;
 import org.inspirenxe.strata.gallery.PageContext;
 import org.inspirenxe.strata.gallery.almura.AlmuraMocks;
 
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -117,6 +121,9 @@ final class ScreenPages {
                             final State<Double> volume = State.of(0.8);
                             final State<String> name = State.of("Ana");
                             final State<String> sort = State.of("Price");
+                            final State<Boolean> details = State.of(false);
+                            final State<Boolean> notice = State.of(true);
+                            final State<LocalDate> due = State.of(LocalDate.of(2026, 11, 2));
 
                             boolean canSave() {
                                 return !this.name.get().isBlank();
@@ -132,6 +139,10 @@ final class ScreenPages {
                         ui.textBox().bind(TextInput.TEXT, model.name);
                         ui.<String>comboBox().setItems(List.of("Name", "Price", "Seller"))
                                 .bind(Selection.selectedItem(), model.sort);
+                        ui.expander("Details").bind(Expander.IS_EXPANDED, model.details);
+                        ui.infoBar(InfoBar.Severity.INFO, "Saved", "Your settings are stored.")
+                                .bind(InfoBar.IS_OPEN, model.notice);   // the close button writes false
+                        ui.datePicker().bind(HasDate.DATE, model.due);  // null for no date
                         // One way: computed sources
                         ui.label().bind(HasText.TEXT, () -> Text.of("Hello, " + model.name.get()));
                         ui.button("Save").bind(Component.ENABLED, model::canSave);
@@ -147,6 +158,9 @@ final class ScreenPages {
         private final State<String> name = State.of("Ana");
         private final State<List<String>> sorts = State.of(List.of("Name", "Price", "Seller"));
         private final State<String> sort = State.of("Price");
+        private final State<Boolean> details = State.of(false);
+        private final State<Boolean> notice = State.of(true);
+        private final State<LocalDate> due = State.of(LocalDate.of(2026, 11, 2));
 
         private boolean canSave() {
             return !this.name.get().isBlank();
@@ -157,6 +171,9 @@ final class ScreenPages {
             this.volume.set(0.8);
             this.name.set("Ana");
             this.sort.set("Price");
+            this.details.set(false);
+            this.notice.set(true);
+            this.due.set(LocalDate.of(2026, 11, 2));
         }
     }
 
@@ -182,6 +199,22 @@ final class ScreenPages {
                         Samples.example(ui, "The same volume", ui.progressBar().setWidth(140f)
                                 .bind(Ranged.VALUE, model.volume)),
                         Samples.example(ui, "Sort by", sort)),
+                Samples.section(ui, "Shown",
+                        Samples.example(ui, "Expander", ui.expander("Details").setWidth(180f)
+                                .setContent(ui.label("Shown while the state is true"))
+                                .bind(Expander.IS_EXPANDED, model.details)),
+                        Samples.example(ui, "The same state", ui.checkBox("Show details")
+                                .bind(Toggle.SELECTED, model.details)),
+                        Samples.example(ui, "Info bar, closed by its button", ui.infoBar(InfoBar.Severity.INFO,
+                                "Saved", "Your settings are stored.").setClosable(true).setWidth(220f)
+                                .bind(InfoBar.IS_OPEN, model.notice)),
+                        Samples.example(ui, "The same state", ui.checkBox("Show the notice")
+                                .bind(Toggle.SELECTED, model.notice))),
+                Samples.section(ui, "Picked",
+                        Samples.example(ui, "Due date", ui.datePicker().setClearable(true)
+                                .bind(HasDate.DATE, model.due)),
+                        Samples.example(ui, "The date, computed", ui.label().bind(HasText.TEXT,
+                                model.due.map(date -> Text.of(date == null ? "No due date" : "Due " + date))))),
                 Samples.section(ui, "Text",
                         Samples.example(ui, "Name", ui.textBox().setWidth(140f).bind(TextInput.TEXT, model.name)),
                         Samples.example(ui, "Greeting, computed", ui.label()
