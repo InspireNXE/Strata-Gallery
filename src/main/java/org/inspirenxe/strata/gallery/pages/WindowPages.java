@@ -180,7 +180,7 @@ final class WindowPages {
                                                                     + "MessageBox.ANSWER handler.",
                                                                     MessageBox.Buttons.OK_CANCEL)
                                                             .onEvent(MessageBox.ANSWER, answer -> {
-                                                                if (answer.value() != MessageBox.Result.OK) {
+                                                                if (!answer.value().equals(MessageBox.Result.OK)) {
                                                                     answer.cancel();
                                                                 }
                                                             }))))),

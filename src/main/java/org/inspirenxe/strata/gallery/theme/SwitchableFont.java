@@ -67,4 +67,10 @@ public final class SwitchableFont implements SwingFont {
                      final int argb) {
         this.font.draw(graphics, span, x, baseline, argb);
     }
+
+    @Override
+    public void drawRightToLeft(final Graphics2D graphics, final TextSpan span, final float x, final float baseline,
+                                final int argb) {
+        this.font.drawRightToLeft(graphics, span, x, baseline, argb);
+    }
 }

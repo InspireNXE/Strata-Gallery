@@ -15,6 +15,13 @@
  */
 package org.inspirenxe.strata.gallery;
 
+import org.inspirenxe.strata.api.control.button.ToggleSwitch;
+import org.inspirenxe.strata.api.control.display.ProgressBar;
+import org.inspirenxe.strata.api.control.pane.Expander;
+import org.inspirenxe.strata.api.control.pane.NavigationView;
+import org.inspirenxe.strata.api.layout.ScrollPanel;
+import org.inspirenxe.strata.api.overlay.Overlays;
+import org.inspirenxe.strata.api.theme.Theme;
 import org.inspirenxe.strata.gallery.pages.Pages;
 import org.inspirenxe.strata.gallery.theme.GalleryLook;
 import org.inspirenxe.strata.gallery.theme.SwitchableFont;
@@ -24,11 +31,13 @@ import org.inspirenxe.strata.swing.SwingPlatform;
 import org.inspirenxe.strata.swing.SwingSnapshot;
 import org.inspirenxe.strata.swing.SwingTextMetrics;
 
-import java.awt.Dimension;
+import java.awt.GraphicsEnvironment;
+import java.awt.Rectangle;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import javax.imageio.ImageIO;
 import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
@@ -45,6 +54,16 @@ public final class Gallery {
     private static final float SCALE = 1.5f;
     private static final int WIDTH = 1400;
     private static final int HEIGHT = 900;
+    /**
+     * The durations, in milliseconds, that a page turns on to try built-in motion.
+     */
+    private static final Map<String, Float> MOTION = Map.of(
+            ToggleSwitch.STYLE_ANIMATION, 150f,
+            Expander.STYLE_ANIMATION, 200f,
+            NavigationView.STYLE_ANIMATION, 200f,
+            ScrollPanel.STYLE_SMOOTH, 150f,
+            Overlays.STYLE_TOAST_FADE, 250f,
+            ProgressBar.STYLE_ANIMATION, 300f);
     private static final String USAGE = "Usage: gallery [--theme flat|minecraft|minecraft:<pack>] "
             + "[--snapshot <directory>]";
 
@@ -145,6 +164,7 @@ public final class Gallery {
         private final SwitchableFont monospace;
         private final StrataPanel panel;
         private GalleryLook look;
+        private boolean motion;
 
         GalleryWindow(final List<ThemeChoice> themes, final GalleryLook look) {
             this.themes = themes;
@@ -154,7 +174,6 @@ public final class Gallery {
             this.monospace = new SwitchableFont(look.monospace());
             final SwingPlatform platform = new SwingPlatform(new SwingTextMetrics(this.text, this.monospace));
             this.panel = new StrataPanel(platform, look.theme(), SCALE, look.sprites());
-            this.panel.setPreferredSize(new Dimension(WIDTH, HEIGHT));
         }
 
         void open() {
@@ -162,9 +181,14 @@ public final class Gallery {
             this.panel.setDefault();
             this.panel.screens().push(this.screen(this.pages.getFirst()));
             final JFrame frame = new JFrame("Strata Gallery");
-            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             frame.setContentPane(this.panel);
+            // The panel asks the screens before the window closes, and shows the top screen's title
+            this.panel.manageWindow(frame);
             frame.pack();
+            // The panel asks for what the first page needs, which can be taller than the screen
+            final Rectangle usable = GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds();
+            frame.setSize(Math.min(frame.getWidth(), Math.min(WIDTH, usable.width)),
+                    Math.min(frame.getHeight(), Math.min(HEIGHT, usable.height)));
             frame.setLocationRelativeTo(null);
             frame.setVisible(true);
             this.panel.requestFocusInWindow();
@@ -174,7 +198,26 @@ public final class Gallery {
             return new GalleryScreen(this.pages, screen -> this.panel.screens().push(screen), page,
                     this.look.chrome(), this.themes, this.look.choice(),
                     // The selector is on the screen being replaced, so wait until its event is done
-                    (next, at) -> SwingUtilities.invokeLater(() -> this.switchTo(next, at)));
+                    (next, at) -> SwingUtilities.invokeLater(() -> this.switchTo(next, at)))
+                    .withMotion(on -> SwingUtilities.invokeLater(() -> this.setMotion(on)))
+                    .withScale(this.panel.scale(), scale -> SwingUtilities.invokeLater(() -> this.panel.setScale(scale)));
+        }
+
+        /**
+         * Turns the durations of built-in motion on or off in the look's theme, for every screen.
+         */
+        private void setMotion(final boolean on) {
+            this.motion = on;
+            this.panel.screens().setTheme(this.themeWithMotion(this.look.theme()));
+        }
+
+        private Theme themeWithMotion(final Theme theme) {
+            if (!this.motion) {
+                return theme;
+            }
+            final Theme.Builder builder = theme.toBuilder();
+            MOTION.forEach(builder::metric);
+            return builder.build();
         }
 
         private void switchTo(final ThemeChoice theme, final Page page) {
@@ -191,6 +234,7 @@ public final class Gallery {
             this.panel.screens().clear();
             this.text.use(next.text());
             this.monospace.use(next.monospace());
+            this.motion = false;
             this.panel.screens().setTheme(next.theme());
             this.panel.setSprites(next.sprites());
             this.panel.screens().push(this.screen(page));

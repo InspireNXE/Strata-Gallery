@@ -56,6 +56,10 @@ public final class GalleryScreen implements Screen {
     private final List<ThemeChoice> themes;
     private final ThemeChoice theme;
     private final BiConsumer<ThemeChoice, Page> switchTheme;
+    private Consumer<Boolean> motion;
+    private boolean motionOn;
+    private Consumer<Float> scale;
+    private float scaleValue;
     private ComponentFactory ui;
     private Page current;
     private Label title;
@@ -97,6 +101,30 @@ public final class GalleryScreen implements Screen {
         this.themes = List.copyOf(themes);
         this.theme = theme;
         this.switchTheme = switchTheme;
+    }
+
+    /**
+     * Lets pages turn built-in motion on and off, through the theme the window gives its screens.
+     *
+     * @param motion called with true to turn motion on and false to turn it off
+     * @return this screen
+     */
+    public GalleryScreen withMotion(final Consumer<Boolean> motion) {
+        this.motion = motion;
+        return this;
+    }
+
+    /**
+     * Adds a selector for the panel's scale, the pixels per UI unit, beside the theme selector.
+     *
+     * @param current the scale now
+     * @param scale called with the scale the user picks
+     * @return this screen
+     */
+    public GalleryScreen withScale(final float current, final Consumer<Float> scale) {
+        this.scaleValue = current;
+        this.scale = scale;
+        return this;
     }
 
     @Override
@@ -199,7 +227,16 @@ public final class GalleryScreen implements Screen {
         // Short snippets get a panel just tall enough; longer ones scroll inside it
         this.usage.setVisibleLines(Math.clamp(code.lines().count(), 1, USAGE_LINES))
                 .setText(code);
-        final PageContext context = new PageContext(this.ui, this.open, this.log::add);
+        if (this.motionOn && this.motion != null) {
+            // Motion belongs to the page that asked for it
+            this.motionOn = false;
+            this.motion.accept(false);
+        }
+        final PageContext context = new PageContext(this.ui, this.open, this.log::add,
+                this.motion == null ? null : on -> {
+                    this.motionOn = on;
+                    this.motion.accept(on);
+                }, () -> this.motionOn);
         this.log.clear();
         final StackPanel holder = this.ui.stackPanel()
                 .setSpacing(8)
@@ -227,26 +264,50 @@ public final class GalleryScreen implements Screen {
      * The page title, with the theme selector beside it when there are looks to switch to.
      */
     private Component<?> heading() {
-        if (this.switchTheme == null || this.themes.size() < 2) {
+        final boolean themes = this.switchTheme != null && this.themes.size() >= 2;
+        if (!themes && this.scale == null) {
             return this.title;
         }
-        final ComboBox<ThemeChoice> selector = this.ui.<ThemeChoice>comboBox(ThemeChoice::label)
-                .setItems(this.themes)
-                .selectItem(this.theme)
-                .setAnchor(Anchor.MIDDLE_RIGHT);
-        selector.onEvent(SingleSelection.SELECTED, event -> selector.selected()
-                .filter(choice -> !choice.equals(this.theme))
-                .ifPresent(choice -> this.switchTheme.accept(choice, this.current)));
-        return this.ui.gridPanel()
-                .columns(GridLength.weighted(1), GridLength.auto(), GridLength.auto())
+        final GridPanel row = this.ui.gridPanel()
                 .rows(GridLength.auto())
                 .setSpacing(6, 0)
-                .add(this.title.setAnchor(Anchor.MIDDLE_LEFT), 0, 0)
-                .add(this.ui.label("Theme")
-                        .setStyle(this.chrome.text().withColor(this.chrome.muted()))
-                        .setAnchor(Anchor.MIDDLE_RIGHT), 0, 1)
-                .add(selector, 0, 2)
-                .setAlignment(HorizontalAlignment.STRETCH, VerticalAlignment.TOP);
+                .setAlignment(HorizontalAlignment.STRETCH, VerticalAlignment.TOP)
+                .addColumn(GridLength.weighted(1))
+                .add(this.title.setAnchor(Anchor.MIDDLE_LEFT), 0, 0);
+        int column = 1;
+        if (this.scale != null) {
+            final ComboBox<Float> selector = this.ui.<Float>comboBox(value -> (value == Math.rint(value) ? String.valueOf(value.intValue()) : value.toString())
+                            + "x")
+                    .setItems(List.of(1f, 1.5f, 2f, 3f))
+                    .selectItem(this.scaleValue)
+                    .setAnchor(Anchor.MIDDLE_RIGHT);
+            selector.onEvent(SingleSelection.SELECTED, event -> selector.selected()
+                    .filter(value -> value != this.scaleValue)
+                    .ifPresent(value -> {
+                        this.scaleValue = value;
+                        this.scale.accept(value);
+                    }));
+            row.addColumn(GridLength.auto()).addColumn(GridLength.auto())
+                    .add(this.ui.label("Scale")
+                            .setStyle(this.chrome.text().withColor(this.chrome.muted()))
+                            .setAnchor(Anchor.MIDDLE_RIGHT), 0, column++)
+                    .add(selector, 0, column++);
+        }
+        if (themes) {
+            final ComboBox<ThemeChoice> selector = this.ui.<ThemeChoice>comboBox(ThemeChoice::label)
+                    .setItems(this.themes)
+                    .selectItem(this.theme)
+                    .setAnchor(Anchor.MIDDLE_RIGHT);
+            selector.onEvent(SingleSelection.SELECTED, event -> selector.selected()
+                    .filter(choice -> !choice.equals(this.theme))
+                    .ifPresent(choice -> this.switchTheme.accept(choice, this.current)));
+            row.addColumn(GridLength.auto()).addColumn(GridLength.auto())
+                    .add(this.ui.label("Theme")
+                            .setStyle(this.chrome.text().withColor(this.chrome.muted()))
+                            .setAnchor(Anchor.MIDDLE_RIGHT), 0, column++)
+                    .add(selector, 0, column);
+        }
+        return row;
     }
 
     /**

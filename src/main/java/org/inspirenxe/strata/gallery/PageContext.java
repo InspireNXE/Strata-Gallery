@@ -22,6 +22,7 @@ import org.inspirenxe.strata.api.screen.Screen;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 
 /**
@@ -33,11 +34,20 @@ public final class PageContext {
     private final Consumer<String> log;
     private final List<EventType<?>> watched;
     private final List<Component<?>> popups;
+    private final Consumer<Boolean> motion;
+    private final BooleanSupplier motionOn;
 
     PageContext(final ComponentFactory ui, final Consumer<Screen> open, final Consumer<String> log) {
+        this(ui, open, log, null, () -> false);
+    }
+
+    PageContext(final ComponentFactory ui, final Consumer<Screen> open, final Consumer<String> log,
+                final Consumer<Boolean> motion, final BooleanSupplier motionOn) {
         this.ui = ui;
         this.open = open;
         this.log = log;
+        this.motion = motion;
+        this.motionOn = motionOn;
         this.watched = new ArrayList<>();
         this.popups = new ArrayList<>();
     }
@@ -69,6 +79,37 @@ public final class PageContext {
      */
     public boolean canOpen() {
         return this.open != null;
+    }
+
+    /**
+     * Returns whether {@link #setMotion} changes anything, which it does not while rendering snapshots.
+     *
+     * @return true in a window
+     */
+    public boolean canMotion() {
+        return this.motion != null;
+    }
+
+    /**
+     * Returns whether the theme the gallery shows turns built-in motion on, the durations of the switch, expander,
+     * navigation view, scroll panel, toast and progress bar. Motion is off when a page opens.
+     *
+     * @return true while motion is on
+     */
+    public boolean motion() {
+        return this.motionOn.getAsBoolean();
+    }
+
+    /**
+     * Turns built-in motion on or off for the whole gallery, by changing the theme of its screens. The gallery turns
+     * it off again whenever another page opens. Does nothing while the gallery renders snapshots.
+     *
+     * @param on true for motion
+     */
+    public void setMotion(final boolean on) {
+        if (this.motion != null) {
+            this.motion.accept(on);
+        }
     }
 
     /**

@@ -16,6 +16,7 @@
 package org.inspirenxe.strata.gallery;
 
 import org.inspirenxe.strata.api.component.Component;
+import org.inspirenxe.strata.api.component.Validation;
 import org.inspirenxe.strata.api.control.attribute.item.Activatable;
 import org.inspirenxe.strata.api.control.attribute.item.MultiSelection;
 import org.inspirenxe.strata.api.control.attribute.item.Selection;
@@ -28,6 +29,7 @@ import org.inspirenxe.strata.api.control.attribute.value.HasDate;
 import org.inspirenxe.strata.api.control.attribute.value.HasTime;
 import org.inspirenxe.strata.api.control.attribute.value.Ranged;
 import org.inspirenxe.strata.api.control.attribute.value.Toggle;
+import org.inspirenxe.strata.api.control.attribute.value.Validatable;
 import org.inspirenxe.strata.api.control.button.Button;
 import org.inspirenxe.strata.api.control.collection.ListView;
 import org.inspirenxe.strata.api.event.Event;
@@ -61,7 +63,8 @@ final class EventLog {
             MultiSelection.SELECT_MANY, MultiSelection.SELECTED_MANY,
             Activatable.ACTIVATE, Activatable.ACTIVATED,
             Openable.OPEN, Openable.OPENED,
-            Closable.CLOSE, Closable.CLOSED);
+            Closable.CLOSE, Closable.CLOSED,
+            Validatable.VALIDATED);
     private static final int LIMIT = 200;
 
     private final ListView<String> view;
@@ -139,6 +142,11 @@ final class EventLog {
         }
         if (value instanceof final Text text) {
             return "\"" + text.plain() + "\"";
+        }
+        if (value instanceof final Validation validation) {
+            return validation.severity() == Validation.Severity.NONE
+                    ? "valid"
+                    : validation.severity() + " \"" + validation.message().plain() + "\"";
         }
         return String.valueOf(value);
     }
