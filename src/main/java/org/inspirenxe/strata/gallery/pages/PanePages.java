@@ -16,12 +16,15 @@
 package org.inspirenxe.strata.gallery.pages;
 
 import org.inspirenxe.strata.api.ComponentFactory;
+import org.inspirenxe.strata.api.animation.Easing;
 import org.inspirenxe.strata.api.component.Component;
 import org.inspirenxe.strata.api.component.Tooltip;
 import org.inspirenxe.strata.api.control.attribute.item.SingleSelection;
 import org.inspirenxe.strata.api.control.attribute.value.Ranged;
-import org.inspirenxe.strata.api.control.display.Label;
+import org.inspirenxe.strata.api.control.attribute.value.Toggle;
 import org.inspirenxe.strata.api.control.button.Button;
+import org.inspirenxe.strata.api.control.button.CheckBox;
+import org.inspirenxe.strata.api.control.display.Label;
 import org.inspirenxe.strata.api.control.field.Slider;
 import org.inspirenxe.strata.api.control.field.TextBox;
 import org.inspirenxe.strata.api.control.pane.Expander;
@@ -41,6 +44,7 @@ import org.inspirenxe.strata.api.layout.StackPanel;
 import org.inspirenxe.strata.api.layout.VerticalAlignment;
 import org.inspirenxe.strata.api.theme.Paint;
 import org.inspirenxe.strata.gallery.Page;
+import org.inspirenxe.strata.gallery.PageContext;
 
 import java.util.List;
 
@@ -127,6 +131,13 @@ final class PanePages {
                                 .onEvent(Expander.EXPANDED, event -> status.setText(event.value() ? "Open" : "Closed"));
                         filters.setWidth(200);
                         panel.add(filters).add(status);
+
+                        // A header can be any component: a check box that turns its own settings on
+                        final CheckBox proxy = ui.checkBox("Use a proxy");
+                        final Expander network = ui.expander()
+                                .setHeader(proxy)
+                                .setContent(ui.textBox().setPlaceholder("proxy.example.org"));
+                        proxy.onEvent(Toggle.TOGGLED, event -> network.setExpanded(event.value()));
                         """, context -> {
                     final ComponentFactory ui = context.ui();
                     context.watch(Expander.EXPAND, Expander.EXPANDED);
@@ -152,7 +163,64 @@ final class PanePages {
                                             ui.expander("Stays shut")
                                                     .setContent(PanePages.filters(ui))
                                                     .onEvent(Expander.EXPAND, event -> event.cancel())
-                                                    .setWidth(200))));
+                                                    .setWidth(200))),
+                            Samples.section(ui, "A component as the header",
+                                    Samples.example(ui, "The check box turns the settings on and opens them",
+                                            PanePages.proxySettings(ui)),
+                                    Samples.example(ui, "Motion", Samples.motion(ui, context))));
+                }),
+                new Page(SECTION, "Lifecycle", "A component hears when it joins or leaves a shown tree, and "
+                        + "whileAttached starts something when it joins and stops it when it leaves. Collapse and "
+                        + "expand the expander, or switch pages in the navigation view, and watch the log.", """
+                        final Label shown = ui.label("");
+                        // The animation ticks while the label is in a shown tree, and stops when it leaves
+                        shown.whileAttached(() -> ui.animator().run(60_000, Easing.LINEAR,
+                                fraction -> shown.setText("Shown for " + (int) (fraction * 60) + " s")));
+                        final Expander details = ui.expander("Details").setContent(shown).setExpanded(true);
+
+                        // The events themselves
+                        shown.onEvent(Component.ATTACHED, event -> log("attached"));
+                        shown.onEvent(Component.DETACHED, event -> log("detached"));
+
+                        // A navigation view builds a page when it is selected, and detaches it when another is
+                        final NavigationView pages = ui.navigationView()
+                                .addItem("First", factory -> factory.label("The first page"))
+                                .addItem("Second", factory -> factory.label("The second page"));
+                        """, context -> {
+                    final ComponentFactory ui = context.ui();
+                    final Label ticking = ui.label("");
+                    final int[] attached = {0};
+                    ticking.whileAttached(() -> {
+                        attached[0]++;
+                        ticking.setText("Attached " + attached[0] + " time(s)");
+                        // The animation is a subscription: closing it, as a detach does, stops it
+                        return ui.animator().run(600_000L, Easing.LINEAR, fraction -> ticking.setText(
+                                "Attached " + attached[0] + " time(s), shown for " + (int) (fraction * 600) + " s"));
+                    });
+                    PanePages.logLifecycle(context, ticking, "ticking label");
+                    final Expander details = ui.expander("Details")
+                            .setContent(ui.stackPanel().setPadding(6).add(ticking))
+                            .setExpanded(true)
+                            .setWidth(280);
+                    final NavigationView view = ui.navigationView()
+                            .setTitle("Pages")
+                            .setDisplayMode(NavigationView.DisplayMode.EXPANDED)
+                            .addItem(ui.navigationItem("First").setIcon(Samples.icon())
+                                    .setPage(factory -> PanePages.logged(context, factory.label("The first page"),
+                                            "first page")))
+                            .addItem(ui.navigationItem("Second").setIcon(Samples.icon(0xFF43A047))
+                                    .setPage(factory -> PanePages.logged(context, factory.label("The second page"),
+                                            "second page")))
+                            .select(0);
+                    final AnchorPanel frame = ui.anchorPanel().setBackground(DARK).add(view);
+                    frame.setSize(380, 120);
+                    return Samples.column(ui,
+                            Samples.section(ui, "Collapsing detaches the content",
+                                    Samples.example(ui, "whileAttached runs when the label joins a shown tree and "
+                                            + "stops when it leaves", details)),
+                            Samples.section(ui, "Pages attach as they are shown",
+                                    Samples.example(ui, "Each page is built, attached and logged when selected",
+                                            frame)));
                 }),
                 new Page(SECTION, "Split pane", "Two areas with a divider between them that the user drags. The "
                         + "position is the share of the space the first area gets.", """
@@ -165,9 +233,18 @@ final class PanePages {
                                 .onEvent(SplitPane.MOVED, event -> status.setText("Divider at " + event.value()));
                         split.setSize(320, 120);
                         panel.add(split).add(status);
+
+                        // A sidebar that keeps its width as the pane grows, and collapses on a double click
+                        final SplitPane sidebar = ui.splitPane()
+                                .setFirst(navigation)
+                                .setSecond(content)
+                                .setMinSizes(150, 80)
+                                .setResizePolicy(SplitPane.ResizePolicy.KEEP_FIRST)
+                                .setCollapsible(true, false)
+                                .onEvent(SplitPane.COLLAPSED, event -> status.setText("Collapsed " + event.value()));
                         """, context -> {
                     final ComponentFactory ui = context.ui();
-                    context.watch(SplitPane.MOVE, SplitPane.MOVED);
+                    context.watch(SplitPane.MOVE, SplitPane.MOVED, SplitPane.COLLAPSE, SplitPane.COLLAPSED);
                     return Samples.column(ui,
                             Samples.section(ui, "Orientations",
                                     Samples.example(ui, "Horizontal, at 0.3", ui.splitPane(Orientation.HORIZONTAL)
@@ -190,7 +267,31 @@ final class PanePages {
                                             .setFirst(PanePages.slot(ui, "Fixed", SLOT))
                                             .setSecond(PanePages.slot(ui, "Fixed", SLOT))
                                             .setEnabled(false)
-                                            .setSize(200, 50))));
+                                            .setSize(200, 50))),
+                            PanePages.resizing(ui),
+                            Samples.section(ui, "Collapsible sides",
+                                    Samples.example(ui, "A sidebar at least 150 wide. A double click on the divider, "
+                                            + "or Enter on it, collapses the first side and restores it",
+                                            ui.splitPane()
+                                                    .setFirst(PanePages.slot(ui, "Sidebar", SLOT_BLUE))
+                                                    .setSecond(PanePages.slot(ui, "Content", SLOT_GREEN))
+                                                    .setPosition(0.4f)
+                                                    .setMinSizes(150, 80)
+                                                    .setResizePolicy(SplitPane.ResizePolicy.KEEP_FIRST)
+                                                    .setCollapsible(true, false)
+                                                    .setSize(360, 90)),
+                                    Samples.example(ui, "Three areas are a split pane inside another", ui.splitPane()
+                                            .setFirst(PanePages.slot(ui, "Tree", SLOT_BLUE))
+                                            .setSecond(ui.splitPane(Orientation.VERTICAL)
+                                                    .setFirst(PanePages.slot(ui, "Editor", SLOT_GREEN))
+                                                    .setSecond(PanePages.slot(ui, "Output", SLOT))
+                                                    .setPosition(0.65f)
+                                                    .setAnchor(Anchor.FILL))
+                                            .setPosition(0.3f)
+                                            .setSize(320, 120))),
+                            Samples.note(ui, "Press Tab to reach a divider, then the arrows move it by 10 units, "
+                                    + "Shift by 1, and Home and End move it to the minimums. Every key goes "
+                                    + "through MOVE, so a handler can refuse or change it."));
                 }),
                 new Page(SECTION, "Navigation view", "A pane of sections at the side of a screen, with the "
                         + "selected section's page beside it. Wide, the pane is open; narrower, it is a column of "
@@ -205,6 +306,8 @@ final class PanePages {
                                 .addSeparator()
                                 .addItem(ui.navigationItem("Friends").setIcon(peopleIcon).setBadge(3)
                                         .setPage(FriendsPage::new))
+                                // A smaller icon sits in the middle of the same square, so the texts line up
+                                .addItem(ui.navigationItem("Tools").setIcon(toolsIcon).setIconSize(12, 12))
                                 .addFooterItem(ui.navigationItem("Sign out").setSelectable(false))
                                 .setPaneHeader(ui.textBox().setPlaceholder("Search"))
                                 .setPaneFooter(ui.avatar().setName("Ana Lima"));
@@ -220,7 +323,7 @@ final class PanePages {
                             NavigationView.ITEM_EXPANDED);
                     final NavigationView view = PanePages.settingsView(ui);
                     final AnchorPanel frame = ui.anchorPanel().setBackground(DARK).add(view);
-                    frame.setSize(460, 250);
+                    frame.setSize(460, 330);
                     final Slider width = ui.slider()
                             .setRange(160, 520)
                             .setStep(10)
@@ -277,6 +380,16 @@ final class PanePages {
                                                     .setExtent(100, 400)
                                                     .setSlim(true)
                                                     .setWidth(140))),
+                                    Samples.example(ui, "With arrows at the ends: they step, and repeat while held",
+                                            ui.scrollBar(Orientation.HORIZONTAL)
+                                                    .setExtent(100, 500)
+                                                    .setArrowsShown(true)
+                                                    .setScrollRate(20)
+                                                    .setWidth(220)),
+                                    Samples.example(ui, "Vertical with arrows", ui.scrollBar(Orientation.VERTICAL)
+                                            .setExtent(100, 500)
+                                            .setArrowsShown(true)
+                                            .setHeight(110)),
                                     Samples.example(ui, "Focusable: arrows, Page Up and Down, Home, End",
                                             ui.scrollBar(Orientation.HORIZONTAL)
                                                     .setExtent(100, 500)
@@ -321,6 +434,10 @@ final class PanePages {
                         .setBadge(3)
                         .setTooltip(Tooltip.text("Three friend requests"))
                         .setPage(page -> PanePages.page(page, "Ana, Ben and Cleo want to be friends")))
+                .addItem(ui.navigationItem("Tools")
+                        .setIcon(Samples.icon(0xFF26A69A))
+                        .setIconSize(12, 12)
+                        .setPage(page -> PanePages.page(page, "A 12 by 12 icon in the same square")))
                 .addFooterItem(ui.navigationItem("Sign out").setSelectable(false))
                 .setPaneHeader(search)
                 .setPaneFooter(ui.avatar().setName("Ana Lima").setBadge(2).setMargin(Insets.of(2f)))
@@ -394,5 +511,68 @@ final class PanePages {
                 .setSpacing(2)
                 .add(view)
                 .add(bar);
+    }
+
+    /**
+     * An expander whose header is a check box that turns its settings on and opens them.
+     */
+    private static Component<?> proxySettings(final ComponentFactory ui) {
+        final CheckBox proxy = ui.checkBox("Use a proxy");
+        final TextBox address = ui.textBox().setPlaceholder("proxy.example.org").setEnabled(false);
+        final Expander network = ui.expander()
+                .setHeader(proxy)
+                .setContent(ui.stackPanel().setPadding(4).add(address))
+                .setWidth(220);
+        proxy.onEvent(Toggle.TOGGLED, event -> {
+            address.setEnabled(event.value());
+            network.setExpanded(event.value());
+        });
+        return network;
+    }
+
+    /**
+     * Two split panes of one width, one that shares a change of size between its sides and one that keeps its
+     * first side, with a slider that sets their width.
+     */
+    private static Component<?> resizing(final ComponentFactory ui) {
+        final SplitPane proportional = ui.splitPane()
+                .setFirst(PanePages.slot(ui, "First", SLOT_BLUE))
+                .setSecond(PanePages.slot(ui, "Second", SLOT_GREEN))
+                .setPosition(0.4f)
+                .setMinSizes(60, 60)
+                .setSize(300, 50);
+        final SplitPane keepFirst = ui.splitPane()
+                .setFirst(PanePages.slot(ui, "First", SLOT_BLUE))
+                .setSecond(PanePages.slot(ui, "Second", SLOT_GREEN))
+                .setPosition(0.4f)
+                .setMinSizes(60, 60)
+                .setResizePolicy(SplitPane.ResizePolicy.KEEP_FIRST)
+                .setSize(300, 50);
+        final Slider width = ui.slider()
+                .setRange(160, 400)
+                .setStep(10)
+                .setValue(300)
+                .setLabel(value -> "Width " + (int) value)
+                .onEvent(Ranged.CHANGED, event -> {
+                    proportional.setWidth(event.value().floatValue());
+                    keepFirst.setWidth(event.value().floatValue());
+                });
+        width.setWidth(160);
+        return Samples.section(ui, "Resize policies",
+                Samples.example(ui, "Drag the width: PROPORTIONAL shares it, KEEP_FIRST keeps the first side",
+                        Samples.column(ui, width, proportional, keepFirst).setSpacing(6)));
+    }
+
+    /**
+     * Logs when a component joins and leaves a shown tree.
+     */
+    private static void logLifecycle(final PageContext context, final Component<?> component, final String name) {
+        component.onEvent(Component.ATTACHED, event -> context.log("component.attached   " + name));
+        component.onEvent(Component.DETACHED, event -> context.log("component.detached   " + name));
+    }
+
+    private static Component<?> logged(final PageContext context, final Component<?> component, final String name) {
+        PanePages.logLifecycle(context, component, name);
+        return component;
     }
 }
