@@ -65,7 +65,7 @@ public final class Gallery {
             Overlays.STYLE_TOAST_FADE, 250f,
             ProgressBar.STYLE_ANIMATION, 300f);
     private static final String USAGE = "Usage: gallery [--theme flat|minecraft|minecraft:<pack>] "
-            + "[--snapshot <directory>]";
+            + "[--snapshot <directory> [--size <width>x<height>]]";
 
     private Gallery() {
     }
@@ -73,14 +73,15 @@ public final class Gallery {
     public static void main(final String[] args) throws IOException {
         final List<String> rest = new ArrayList<>(List.of(args));
         final String themeId = Gallery.takeOption(rest, "--theme");
+        final String size = Gallery.takeOption(rest, "--size");
         if (rest.size() == 2 && rest.get(0).equals("--snapshot")) {
             final ThemeChoice theme = themeId == null
                     ? ThemeChoice.FLAT
                     : Gallery.choose(themeId, ThemeChoice.available());
-            Gallery.snapshots(new File(rest.get(1)), theme);
+            Gallery.snapshots(new File(rest.get(1)), theme, size);
             return;
         }
-        if (!rest.isEmpty()) {
+        if (!rest.isEmpty() || size != null) {
             Gallery.fail(USAGE);
         }
         final List<ThemeChoice> themes = ThemeChoice.available();
@@ -120,7 +121,23 @@ public final class Gallery {
         System.exit(2);
     }
 
-    private static void snapshots(final File directory, final ThemeChoice theme) throws IOException {
+    /**
+     * Renders every page. The size, {@code <width>x<height>} in pixels, defaults to the window's, and a taller one
+     * shows pages that scroll in the window in full.
+     */
+    private static void snapshots(final File directory, final ThemeChoice theme, final String size)
+            throws IOException {
+        int width = WIDTH;
+        int height = HEIGHT;
+        if (size != null) {
+            final String[] parts = size.split("x");
+            try {
+                width = Integer.parseInt(parts[0]);
+                height = Integer.parseInt(parts[1]);
+            } catch (final RuntimeException e) {
+                Gallery.fail("Bad size " + size + "; use <width>x<height>");
+            }
+        }
         directory.mkdirs();
         final List<Page> pages = Pages.all();
         try (GalleryLook look = theme.load()) {
@@ -129,8 +146,8 @@ public final class Gallery {
                 final File out = new File(directory, page.slug() + ".png");
                 final GalleryScreen screen = new GalleryScreen(pages, null, page, look.chrome(), List.of(), theme,
                         null);
-                ImageIO.write(SwingSnapshot.render(new SwingPlatform(look.metrics()), screen, look.theme(), WIDTH,
-                        HEIGHT, SCALE, look.sprites(), stack -> { }), "png", out);
+                ImageIO.write(SwingSnapshot.render(new SwingPlatform(look.metrics()), screen, look.theme(), width,
+                        height, SCALE, look.sprites(), stack -> { }), "png", out);
                 System.out.println("Wrote " + out.getAbsolutePath());
             }
         }
