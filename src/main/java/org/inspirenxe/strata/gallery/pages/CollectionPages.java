@@ -20,24 +20,44 @@ import org.inspirenxe.strata.api.Strata;
 import org.inspirenxe.strata.api.appearance.Appearance;
 import org.inspirenxe.strata.api.component.Component;
 import org.inspirenxe.strata.api.component.Tooltip;
+import org.inspirenxe.strata.api.control.attribute.item.CellEditing;
+import org.inspirenxe.strata.api.control.attribute.item.CellEditor;
+import org.inspirenxe.strata.api.control.attribute.item.ItemDragging;
 import org.inspirenxe.strata.api.control.attribute.item.MultiSelection;
 import org.inspirenxe.strata.api.control.attribute.item.SelectionMode;
+import org.inspirenxe.strata.api.control.attribute.value.Toggle;
+import org.inspirenxe.strata.api.control.button.Button;
+import org.inspirenxe.strata.api.control.button.CheckBox;
 import org.inspirenxe.strata.api.control.collection.ComboBox;
 import org.inspirenxe.strata.api.control.collection.GridView;
 import org.inspirenxe.strata.api.control.collection.ListView;
 import org.inspirenxe.strata.api.control.collection.TableColumn;
 import org.inspirenxe.strata.api.control.collection.TableView;
 import org.inspirenxe.strata.api.control.collection.TreeView;
+import org.inspirenxe.strata.api.control.field.TextBox;
+import org.inspirenxe.strata.api.event.input.InputEvents;
+import org.inspirenxe.strata.api.input.Key;
+import org.inspirenxe.strata.api.input.KeyAction;
 import org.inspirenxe.strata.api.layout.Anchor;
 import org.inspirenxe.strata.api.layout.GridLength;
+import org.inspirenxe.strata.api.layout.HorizontalAlignment;
 import org.inspirenxe.strata.api.layout.Orientation;
+import org.inspirenxe.strata.api.layout.ScrollPanel;
+import org.inspirenxe.strata.api.layout.VerticalAlignment;
 import org.inspirenxe.strata.api.text.Text;
 import org.inspirenxe.strata.api.text.TextStyle;
+import org.inspirenxe.strata.api.transfer.Transfer;
 import org.inspirenxe.strata.gallery.Page;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.IntStream;
 
 /**
  * The Collections section: controls that show a list, table, tree or grid of the developer's items.
@@ -112,8 +132,16 @@ final class CollectionPages {
                         fruit.setSelectionMode(SelectionMode.MULTIPLE)
                                 .onEvent(MultiSelection.SELECTED_MANY, event -> status.setText(
                                         fruit.selectedItems().size() + " selected"));
+
+                        // Rows can be dragged: out as text, and into a new order inside the list
+                        people.setDragTransfer(rows -> Transfer.text(String.join("\\n", rows)));
+                        // Typing a name jumps to it; null turns that off
+                        people.setTypeAhead(null);
+                        // F2 or a double press edits a row in place; the items are left alone
+                        people.setCellEditor((factory, name, commit, cancel) -> editor(factory, name, commit, cancel));
                         """, context -> {
                     final ComponentFactory ui = context.ui();
+                    context.watch(ItemDragging.MOVE_ITEMS, CellEditing.EDIT_CELL, CellEditing.CELL_EDITED);
                     final ListView<Fruit> custom = ui.<Fruit>listView(fruit -> CollectionPages.fruitRow(ui, fruit))
                             .setItems(FRUIT)
                             .select(1);
@@ -133,13 +161,43 @@ final class CollectionPages {
                     final ListView<String> empty = ui.<String>listView()
                             .setPlaceholder("No results");
                     empty.setSize(140, 140);
+                    final ListView<String> reorder = ui.<String>listView()
+                            .setItems(new ArrayList<>(Samples.PEOPLE.subList(0, 7)))
+                            .setSelectionMode(SelectionMode.MULTIPLE)
+                            .setDragTransfer(rows -> Transfer.text(String.join("\n", rows)));
+                    reorder.setSize(140, 150);
+                    TransferLog.watch(context, reorder, "List");
+                    final ListView<String> typed = ui.<String>listView().setItems(CollectionPages.NAMES);
+                    typed.setSize(140, 130);
+                    final Setting[] settings = CollectionPages.settings();
+                    final ListView<Setting> editable = ui.<Setting>listView(setting -> ui.label(setting.name()
+                                    + ": " + setting.value()).setAnchor(Anchor.MIDDLE_LEFT))
+                            .setItems(List.of(settings))
+                            .setCellEditor(CollectionPages.editor());
+                    editable.setSize(180, 100);
+                    editable.onEvent(CellEditing.CELL_EDITED, event -> editable.refresh((Setting) event.value()));
                     return Samples.column(ui,
                             Samples.section(ui, "Kinds",
                                     Samples.example(ui, "Custom cells", custom),
                                     Samples.example(ui, "Appearances, no cell factory", appearances),
                                     Samples.example(ui, "Several rows: Control, Shift, Control+A", several),
                                     Samples.example(ui, "Deselectable, activates on click", plain),
-                                    Samples.example(ui, "Empty, with a placeholder", empty)));
+                                    Samples.example(ui, "Empty, with a placeholder", empty)),
+                            Samples.section(ui, "Dragging rows",
+                                    Samples.example(ui, "Drag rows into a new order, or out as text; the pointer "
+                                            + "near an edge scrolls", reorder)),
+                            Samples.note(ui, "Select several rows, press on one of them and drag: they all go. A "
+                                    + "line shows where they land. The log shows MOVE_ITEMS, the drag's events and "
+                                    + "the effect."),
+                            Samples.section(ui, "Type-ahead",
+                                    Samples.example(ui, "Type C, then A: C goes to Cleo, then Cara, and Ca stays on "
+                                            + "a match", typed),
+                                    Samples.example(ui, "Typing starts a jump unless this is off",
+                                            CollectionPages.typeAheadBox(ui, typed::setTypeAhead, name -> name))),
+                            Samples.section(ui, "Editing in place",
+                                    Samples.example(ui, "F2 or a double press edits the value, Enter commits and "
+                                            + "Escape cancels", editable),
+                                    Samples.example(ui, "A smooth scroll with motion on", Samples.motion(ui, context))));
                 }),
                 new Page(SECTION, "Combo box", "A closed box that shows the selected option and opens a list of the "
                         + "others below it. The arrow keys change the selection while it is closed.", """
@@ -155,6 +213,12 @@ final class CollectionPages {
                         fruit.onEvent(SingleSelection.SELECTED, event -> fruit.selected()
                                 .ifPresent(choice -> price.setText(String.format("%.2f each", choice.price()))));
                         panel.add(fruit).add(price);
+
+                        // A hint while nothing is selected: clear the selection before the options arrive
+                        final ComboBox<String> country = ui.<String>comboBox()
+                                .clearSelection()
+                                .setItems(List.of("Brazil", "Japan", "Norway"))
+                                .setPlaceholder("Pick a country");
                         """, context -> {
                     final ComponentFactory ui = context.ui();
                     final ComboBox<Fruit> fruit = ui.<Fruit>comboBox(Fruit::name)
@@ -171,10 +235,23 @@ final class CollectionPages {
                             .select(0)
                             .setEnabled(false);
                     disabled.setWidth(140);
+                    final ComboBox<String> hint = ui.<String>comboBox()
+                            .clearSelection()
+                            .setItems(List.of("Brazil", "Japan", "Norway", "Portugal"))
+                            .setPlaceholder("Pick a country");
+                    hint.setWidth(140);
+                    final ComboBox<String> typed = ui.<String>comboBox().setItems(CollectionPages.NAMES).select(0);
+                    typed.setWidth(140);
                     return Samples.column(ui,
                             Samples.section(ui, "Kinds",
                                     Samples.example(ui, "Label function", fruit),
                                     Samples.example(ui, "Four options at a time", person)),
+                            Samples.section(ui, "Placeholder",
+                                    Samples.example(ui, "Starts with nothing selected and a hint", hint)),
+                            Samples.section(ui, "Type-ahead",
+                                    Samples.example(ui, "Type a name with the box closed or open", typed),
+                                    Samples.example(ui, "Setting a null function turns it off", CollectionPages.typeAheadBox(ui, typed::setTypeAhead,
+                                            name -> name))),
                             Samples.section(ui, "States",
                                     Samples.example(ui, "Disabled", disabled)));
                 }),
@@ -200,9 +277,20 @@ final class CollectionPages {
                         books.onEvent(SingleSelection.SELECTED, event -> books.selected()
                                 .ifPresent(book -> status.setText(book.title() + " by " + book.author())));
                         panel.add(books).add(status);
+
+                        // Columns resize and move by default; limits and a sort on a second column
+                        final TableColumn<Book> author = ui.<Book>tableColumn("Author")
+                                .setWidthLimits(60, 140)
+                                .setComparator(Comparator.comparing(Book::author));
+                        // Shift and a click adds a sort; the table asks SORT_MANY
+                        books.onEvent(TableView.SORTED_MANY, event -> status.setText(event.value().size() + " sorts"));
+                        // Columns wider than the table scroll sideways
+                        books.setHorizontalPolicy(ScrollPanel.ScrollPolicy.AUTO);
                         """, context -> {
                     final ComponentFactory ui = context.ui();
-                    context.watch(TableView.SORT, TableView.SORTED);
+                    context.watch(TableView.SORT, TableView.SORTED, TableView.SORT_MANY, TableView.SORTED_MANY,
+                            TableView.RESIZE_COLUMN, TableView.COLUMN_RESIZED, TableView.MOVE_COLUMN,
+                            TableView.COLUMN_MOVED, CellEditing.EDIT_CELL, CellEditing.CELL_EDITED);
                     final TableColumn<Book> price = ui.<Book>tableColumn("Price")
                             .setWidth(GridLength.fixed(60))
                             .setCellText(book -> String.format("%.2f", book.price()))
@@ -211,15 +299,48 @@ final class CollectionPages {
                             .setWidth(GridLength.fixed(50))
                             .setCellText(book -> String.valueOf(book.year()))
                             .setComparator(Comparator.comparingInt(Book::year));
+                    final TableColumn<Book> author = ui.<Book>tableColumn("Author")
+                            .setWidth(GridLength.fixed(90))
+                            .setWidthLimits(60, 140)
+                            .setCellFactory(book -> CollectionPages.author(ui, book))
+                            .setComparator(Comparator.comparing(Book::author));
                     final TableView<Book> books = ui.<Book>tableView()
                             .addTextColumn("Title", GridLength.weighted(1), Book::title)
-                            .addColumn("Author", GridLength.fixed(80), book -> CollectionPages.author(ui, book))
+                            .addColumn(author)
                             .addColumn(year)
                             .addColumn(price)
                             .setItems(BOOKS)
                             .sortBy(price, true)
                             .select(0);
-                    books.setSize(360, 150);
+                    books.setSize(380, 150);
+                    final TableView<Book> wide = ui.<Book>tableView()
+                            .addTextColumn("Title", GridLength.fixed(130), Book::title)
+                            .addTextColumn("Author", GridLength.fixed(90), Book::author)
+                            .addTextColumn("Year", GridLength.fixed(60), book -> book.year())
+                            .addTextColumn("Price", GridLength.fixed(70), book -> String.format("%.2f", book.price()))
+                            .addTextColumn("Shelf", GridLength.fixed(70), book -> "A" + book.year() % 9)
+                            .setItems(BOOKS);
+                    wide.setSize(300, 140);
+                    final CheckBox sideways = ui.checkBox("Horizontal policy AUTO").setSelected(false);
+                    sideways.onEvent(Toggle.TOGGLED, event -> wide.setHorizontalPolicy(event.value()
+                            ? ScrollPanel.ScrollPolicy.AUTO
+                            : ScrollPanel.ScrollPolicy.NEVER));
+                    final Setting[] settings = CollectionPages.settings();
+                    final TableColumn<Setting> value = ui.<Setting>tableColumn("Value")
+                            .setWidth(GridLength.weighted(1))
+                            .setCellText(Setting::value)
+                            .setCellEditor(CollectionPages.editor());
+                    final TableView<Setting> editable = ui.<Setting>tableView()
+                            .addTextColumn("Setting", GridLength.fixed(110), Setting::name)
+                            .addColumn(value)
+                            .setItems(List.of(settings));
+                    editable.setSize(300, 100);
+                    editable.onEvent(CellEditing.CELL_EDITED, event -> editable.refresh((Setting) event.value()));
+                    final TableView<Book> typed = ui.<Book>tableView()
+                            .addTextColumn("Author", GridLength.weighted(1), Book::author)
+                            .addTextColumn("Title", GridLength.weighted(2), Book::title)
+                            .setItems(BOOKS);
+                    typed.setSize(240, 120);
                     final TableView<Book> empty = ui.<Book>tableView()
                             .addTextColumn("Title", GridLength.weighted(1), Book::title)
                             .addTextColumn("Author", GridLength.fixed(70), Book::author)
@@ -227,8 +348,24 @@ final class CollectionPages {
                     empty.setSize(220, 150);
                     return Samples.column(ui,
                             Samples.section(ui, "Kinds",
-                                    Samples.example(ui, "Sortable Year and Price, custom Author cells", books),
-                                    Samples.example(ui, "Empty, with a placeholder", empty)));
+                                    Samples.example(ui, "Sortable Author, Year and Price, custom Author cells", books),
+                                    Samples.example(ui, "Empty, with a placeholder", empty)),
+                            Samples.note(ui, "Click a title to sort by it, then ascending, descending and back to "
+                                    + "the set order. Shift and a click adds a second sort. Drag a title's right "
+                                    + "edge to resize, with Author limited to 60 to 140, and a double click on the "
+                                    + "edge fits it. Drag a title to move the column. Right click the header to show "
+                                    + "or hide a column."),
+                            Samples.section(ui, "Sideways",
+                                    Samples.example(ui, "Five fixed columns wider than the table", wide),
+                                    Samples.example(ui, "The bar appears when the columns do not fit", sideways)),
+                            Samples.section(ui, "Editing and typing",
+                                    Samples.example(ui, "F2 or a double press edits the Value column", editable),
+                                    Samples.example(ui, "Type an author's name: the first text column is searched",
+                                            typed),
+                                    Samples.example(ui, "Setting a null function turns it off", CollectionPages.typeAheadBox(ui, typed::setTypeAhead,
+                                            Book::author))),
+                            Samples.note(ui, "The table is focusable: Tab reaches it once, and the arrow keys work "
+                                    + "after a click on the header."));
                 }),
                 new Page(SECTION, "Tree view", "Items with children, shown as indented rows. A click on the arrow, "
                         + "or Left and Right, collapses and expands a row.", """
@@ -247,9 +384,14 @@ final class CollectionPages {
                         tree.onEvent(SingleSelection.SELECTED, event -> tree.selected()
                                 .ifPresent(entry -> status.setText("Selected " + entry.name())));
                         panel.add(tree).add(status);
+
+                        // Children load as a folder opens: the test draws the arrow, and refresh(item) asks again
+                        tree.setHasChildren(Entry::folder);
+                        tree.setChildren(entry -> disk.list(entry));
+                        refresh.onEvent(Button.PRESSED, event -> tree.selected().ifPresent(tree::refresh));
                         """, context -> {
                     final ComponentFactory ui = context.ui();
-                    context.watch(TreeView.EXPAND, TreeView.EXPANDED);
+                    context.watch(TreeView.EXPAND, TreeView.EXPANDED, CellEditing.EDIT_CELL, CellEditing.CELL_EDITED);
                     final TreeView<FileEntry> files = ui.<FileEntry>treeView(entry -> ui.label(entry.name())
                                     .setAnchor(Anchor.MIDDLE_LEFT))
                             .setChildren(FileEntry::children)
@@ -263,10 +405,49 @@ final class CollectionPages {
                             .setItems(FILES)
                             .setIndent(16);
                     collapsed.setSize(200, 200);
+                    final Map<String, Integer> loads = new HashMap<>();
+                    final TreeView<Folder> lazy = ui.<Folder>treeView(folder -> ui.label(folder.name())
+                                    .setAnchor(Anchor.MIDDLE_LEFT))
+                            .setHasChildren(Folder::folder)
+                            .setChildren(folder -> {
+                                final int load = loads.merge(folder.path(), 1, Integer::sum);
+                                context.log("children of " + folder.path() + " asked, load " + load);
+                                return CollectionPages.list(folder, load);
+                            })
+                            .setItems(List.of(new Folder("Documents", true), new Folder("Pictures", true),
+                                    new Folder("readme.txt", false)));
+                    lazy.setSize(200, 160);
+                    final Button refresh = ui.button("Refresh the selected folder")
+                            .onEvent(Button.PRESSED, event -> lazy.selected().ifPresent(lazy::refresh));
+                    final TreeView<FileEntry> typed = ui.<FileEntry>treeView(entry -> ui.label(entry.name())
+                                    .setAnchor(Anchor.MIDDLE_LEFT))
+                            .setChildren(FileEntry::children)
+                            .setItems(FILES)
+                            .expandAll();
+                    typed.setSize(200, 130);
+                    final Setting[] settings = CollectionPages.settings();
+                    final TreeView<Setting> editable = ui.<Setting>treeView(setting -> ui.label(setting.name()
+                                    + ": " + setting.value()).setAnchor(Anchor.MIDDLE_LEFT))
+                            .setItems(List.of(settings))
+                            .setCellEditor(CollectionPages.editor());
+                    editable.setSize(200, 100);
+                    editable.onEvent(CellEditing.CELL_EDITED, event -> editable.refresh((Setting) event.value()));
                     return Samples.column(ui,
                             Samples.section(ui, "Kinds",
                                     Samples.example(ui, "Expanded", files),
-                                    Samples.example(ui, "Collapsed, wider indent", collapsed)));
+                                    Samples.example(ui, "Collapsed, wider indent", collapsed)),
+                            Samples.section(ui, "Children that load as a folder opens",
+                                    Samples.example(ui, "Open a folder: the log shows each time the children "
+                                            + "function runs", lazy),
+                                    Samples.example(ui, "refresh(item) drops that folder's children and asks again",
+                                            refresh)),
+                            Samples.section(ui, "Type-ahead and editing",
+                                    Samples.example(ui, "Type a name; it searches only the rows shown", typed),
+                                    Samples.example(ui, "Setting a null function turns it off", CollectionPages.typeAheadBox(ui, typed::setTypeAhead,
+                                            FileEntry::name)),
+                                    Samples.example(ui, "F2 edits a row", editable)),
+                            Samples.note(ui, "The tree is focusable: Tab reaches it once, and Left and Right "
+                                    + "collapse and expand."));
                 }),
                 new Page(SECTION, "Grid view", "Fixed slots in rows and columns, each holding an item or nothing. "
                         + "Slots can show a tooltip, and every click is reported with its button and modifiers.", """
@@ -283,9 +464,20 @@ final class CollectionPages {
                         seats.onEvent(GridView.CLICKED, event -> status.setText("Slot " + event.value().index()
                                 + ", " + event.value().button()));
                         panel.add(seats).add(status);
+
+                        // Several cells: Control and Shift with a click, Control+A for all of them
+                        seats.setSelectionMode(SelectionMode.MULTIPLE)
+                                .onEvent(MultiSelection.SELECTED_MANY, event -> status.setText(
+                                        seats.selectedIndexes().size() + " seats"));
+                        // A few thousand cells in a fixed height build only the rows in view
+                        final GridView<Integer> many = ui.<Integer>gridView(n -> ui.label(String.valueOf(n)))
+                                .setColumns(12)
+                                .setItems(IntStream.range(0, 3000).boxed().toList());
+                        many.setHeight(150);
+                        many.scrollToIndex(2000);
                         """, context -> {
                     final ComponentFactory ui = context.ui();
-                    context.watch(GridView.CLICK, GridView.CLICKED);
+                    context.watch(GridView.CLICK, GridView.CLICKED, CellEditing.EDIT_CELL, CellEditing.CELL_EDITED);
                     final List<Fruit> slots = Arrays.asList(FRUIT.get(0), FRUIT.get(1), null, FRUIT.get(2), null,
                             FRUIT.get(3), FRUIT.get(4), null, FRUIT.get(5), null, null, FRUIT.get(6));
                     final GridView<Fruit> icons = ui.<Fruit>gridView(fruit -> ui.image(Samples.icon(fruit.color()))
@@ -304,10 +496,45 @@ final class CollectionPages {
                             .setSelectable(false)
                             .setTooltips(Tooltip::text)
                             .setItems(Samples.PEOPLE);
+                    final GridView<Integer> many = ui.<Integer>gridView(n -> ui.label(String.valueOf(n))
+                                    .setAnchor(Anchor.CENTER))
+                            .setColumns(12)
+                            .setCellSize(24)
+                            .setSpacing(2)
+                            .setItems(IntStream.range(0, 3000).boxed().toList());
+                    many.setHeight(150);
+                    final CheckBox multiple = ui.checkBox("MULTIPLE").setSelected(true);
+                    many.setSelectionMode(SelectionMode.MULTIPLE).selectIndexes(List.of(2, 3, 14));
+                    multiple.onEvent(Toggle.TOGGLED, event -> many.setSelectionMode(event.value()
+                            ? SelectionMode.MULTIPLE
+                            : SelectionMode.SINGLE));
+                    final Button jump = ui.button("Scroll to cell 2000")
+                            .onEvent(Button.PRESSED, event -> many.scrollToIndex(2000));
+                    final Setting[] settings = CollectionPages.settings();
+                    final GridView<Setting> editable = ui.<Setting>gridView(setting -> ui.label(setting.value())
+                                    .setAnchor(Anchor.CENTER))
+                            .setColumns(3)
+                            .setCellSize(54)
+                            .setSpacing(2)
+                            .setItems(List.of(settings))
+                            .setCellEditor(CollectionPages.editor());
+                    editable.onEvent(CellEditing.CELL_EDITED, event -> editable.refresh((Setting) event.value()));
                     return Samples.column(ui,
                             Samples.section(ui, "Kinds",
                                     Samples.example(ui, "Icons and tooltips, selectable", icons),
-                                    Samples.example(ui, "Larger cells, not selectable", letters)));
+                                    Samples.example(ui, "Larger cells, not selectable", letters)),
+                            Samples.section(ui, "A few thousand cells",
+                                    Samples.example(ui, "Builds only the rows in view and scrolls with the wheel, the "
+                                            + "keys or scrollToIndex", many),
+                                    Samples.example(ui, "A selection mode", Samples.row(ui, multiple, jump)
+                                            .setSpacing(8))),
+                            Samples.section(ui, "Editing cells",
+                                    Samples.example(ui, "F2 or a typed character edits the cursor cell", editable)),
+                            Samples.note(ui, "Click a cell to focus the grid. The arrows move the cursor, Home and "
+                                    + "End go to the ends of its row, Control with them to the first and last cell, "
+                                    + "Page Up and Page Down move by the rows in view, Enter and Space activate, and "
+                                    + "with the grid selectable the selection follows. Control and a click adds a "
+                                    + "cell, Shift selects a range, Control+A selects all."));
                 }));
     }
 
@@ -346,5 +573,118 @@ final class CollectionPages {
     }
 
     private record FileEntry(String name, List<FileEntry> children) {
+    }
+
+    private static final List<String> NAMES = List.of("Ana", "Ben", "Cleo", "Cara", "Clara", "Dev");
+
+    /**
+     * A check box that switches type-ahead on and off for a control.
+     */
+    private static <T> CheckBox typeAheadBox(final ComponentFactory ui, final Consumer<Function<T, ?>> set,
+                                             final Function<T, ?> name) {
+        final CheckBox box = ui.checkBox("Type-ahead").setSelected(true);
+        box.onEvent(Toggle.TOGGLED, event -> set.accept(event.value() ? name : null));
+        return box;
+    }
+
+    /**
+     * Three settings whose values the editor changes.
+     */
+    private static Setting[] settings() {
+        return new Setting[] {
+            new Setting("Name", "Ana"),
+            new Setting("City", "Lisbon"),
+            new Setting("Plan", "Basic"),
+            new Setting("Region", "North"),
+            new Setting("Theme", "Dark"),
+            new Setting("Unit", "Metric")};
+    }
+
+    /**
+     * An editor that commits on Enter and cancels on Escape. It changes the setting and commits it, and the control
+     * leaves the items alone, so the page's handler refreshes the row.
+     */
+    private static CellEditor<Setting> editor() {
+        return (factory, setting, commit, cancel) -> {
+            final TextBox box = factory.textBox().setText(setting.value());
+            box.setAlignment(HorizontalAlignment.STRETCH, VerticalAlignment.MIDDLE);
+            box.onEvent(TextBox.SUBMITTED, event -> {
+                setting.setValue(box.text());
+                commit.accept(setting);
+            });
+            box.onEvent(InputEvents.KEY, event -> {
+                if (event.key() == Key.ESCAPE && event.action() == KeyAction.PRESS) {
+                    cancel.run();
+                    event.consume();
+                }
+            });
+            return box;
+        };
+    }
+
+    /**
+     * What a folder holds the nth time it is loaded: later loads have one more file, so a refresh shows.
+     */
+    private static List<Folder> list(final Folder folder, final int load) {
+        final List<Folder> children = new ArrayList<>();
+        switch (folder.name()) {
+            case "Documents" -> {
+                children.add(new Folder(folder.path() + "/Letters", true));
+                children.add(new Folder(folder.path() + "/budget.csv", false));
+                children.add(new Folder(folder.path() + "/notes.md", false));
+            }
+            case "Letters" -> {
+                children.add(new Folder(folder.path() + "/to-ana.txt", false));
+                children.add(new Folder(folder.path() + "/to-ben.txt", false));
+            }
+            case "Pictures" -> {
+                children.add(new Folder(folder.path() + "/harbor.png", false));
+                children.add(new Folder(folder.path() + "/field.png", false));
+            }
+            default -> { }
+        }
+        for (int i = 2; i <= load; i++) {
+            children.add(new Folder(folder.path() + "/scan-" + i + ".png", false));
+        }
+        return children;
+    }
+
+    /**
+     * A setting the cell editors change in place.
+     */
+    private static final class Setting {
+        private final String name;
+        private String value;
+
+        Setting(final String name, final String value) {
+            this.name = name;
+            this.value = value;
+        }
+
+        String name() {
+            return this.name;
+        }
+
+        String value() {
+            return this.value;
+        }
+
+        void setValue(final String value) {
+            this.value = value;
+        }
+
+        @Override
+        public String toString() {
+            return this.name + ": " + this.value;
+        }
+    }
+
+    /**
+     * An item of a tree whose children load as it opens, named by its path.
+     */
+    private record Folder(String path, boolean folder) {
+        String name() {
+            return this.path.substring(this.path.lastIndexOf('/') + 1);
+        }
     }
 }
