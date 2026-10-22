@@ -33,7 +33,7 @@ import org.inspirenxe.strata.api.control.attribute.value.Ranged;
 import org.inspirenxe.strata.api.control.attribute.value.Toggle;
 import org.inspirenxe.strata.api.control.attribute.value.Validatable;
 import org.inspirenxe.strata.api.control.button.Button;
-import org.inspirenxe.strata.api.control.collection.ListView;
+import org.inspirenxe.strata.api.control.field.TextArea;
 import org.inspirenxe.strata.api.event.Event;
 import org.inspirenxe.strata.api.event.EventType;
 import org.inspirenxe.strata.api.event.cause.Origin;
@@ -69,10 +69,10 @@ final class EventLog {
             Validatable.VALIDATED);
     private static final int LIMIT = 200;
 
-    private final ListView<String> view;
+    private final TextArea view;
     private final List<String> lines;
 
-    EventLog(final ListView<String> view) {
+    EventLog(final TextArea view) {
         this.view = view;
         this.lines = new ArrayList<>();
     }
@@ -95,7 +95,7 @@ final class EventLog {
 
     void clear() {
         this.lines.clear();
-        this.view.setItems(List.of());
+        this.view.setText("");
     }
 
     /**
@@ -108,7 +108,7 @@ final class EventLog {
         if (this.lines.size() > LIMIT) {
             this.lines.removeLast();
         }
-        this.view.setItems(this.lines);
+        this.view.setText(String.join("\n", this.lines));
     }
 
     private void add(final EventType<?> type, final Event event) {

@@ -22,7 +22,6 @@ import org.inspirenxe.strata.api.control.attribute.value.Toggle;
 import org.inspirenxe.strata.api.control.button.Button;
 import org.inspirenxe.strata.api.control.button.CheckBox;
 import org.inspirenxe.strata.api.control.collection.ComboBox;
-import org.inspirenxe.strata.api.control.collection.ListView;
 import org.inspirenxe.strata.api.control.collection.TreeView;
 import org.inspirenxe.strata.api.control.display.Label;
 import org.inspirenxe.strata.api.control.field.TextArea;
@@ -205,8 +204,10 @@ public final class GalleryScreen implements Screen {
                 .add(this.usage, 1, 0)
                 .setAlignment(HorizontalAlignment.STRETCH, VerticalAlignment.TOP);
 
-        final ListView<String> lines = ui.<String>listView(line -> ui.label(line).setAnchor(Anchor.MIDDLE_LEFT))
-                .setRowHeight(16)
+        // A log is text to read and copy, not items to select, so it is a read-only text area
+        final TextArea lines = ui.textArea()
+                .setReadOnly(true)
+                .setWrap(false)
                 .setPlaceholder("Use a control above to see the events it fires.")
                 .setAnchor(Anchor.FILL);
         this.log = new EventLog(lines);
