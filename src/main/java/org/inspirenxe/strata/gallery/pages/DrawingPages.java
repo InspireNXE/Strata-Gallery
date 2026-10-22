@@ -32,6 +32,7 @@ import org.inspirenxe.strata.api.geometry.Insets;
 import org.inspirenxe.strata.api.geometry.Rect;
 import org.inspirenxe.strata.api.geometry.Size;
 import org.inspirenxe.strata.api.text.TextSpan;
+import org.inspirenxe.strata.api.theme.SpriteId;
 import org.inspirenxe.strata.api.visual.PixelBuffer;
 import org.inspirenxe.strata.gallery.Page;
 import org.inspirenxe.strata.gallery.PageContext;
@@ -293,10 +294,15 @@ final class DrawingPages {
                 Samples.section(ui, "Grid lines at every density",
                         Samples.example(ui, "Left: lines one unit thick grow with the scale. Right: lines one "
                                 + "device pixel thick, from 1 / painter.pixelsPerUnit()", board)),
+                Samples.section(ui, "A sprite with a denser file",
+                        Samples.example(ui, "badge.png and badge@2x.png: at a density of 2 or more the adapter reads "
+                                + "the second, at the same size in units", ui.image(SpriteId.of("gallery", "badge"))
+                                .setImageSize(48, 48)),
+                        Samples.example(ui, "A 16 by 16 image drawn at the same size, which only stretches",
+                                ui.image(Samples.icon()).setImageSize(48, 48))),
                 Samples.note(ui, "Pick 1, 1.5, 2 or 3 in the scale selector beside the page title. The adapter "
                         + "tells the screens the density, which is the scale times the display's own scale, and "
-                        + "they lay out again. Sprites with a denser file, named name@2x.png, would draw sharper "
-                        + "at 2 and above; the gallery ships none."));
+                        + "they lay out again. The badge changes to its denser file at 2."));
     }
 
     /**

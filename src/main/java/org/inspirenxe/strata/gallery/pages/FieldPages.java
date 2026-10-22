@@ -278,6 +278,7 @@ final class FieldPages {
                                             FieldPages.codeEditor(ui)),
                                     Samples.example(ui, "A log: append adds lines while you read further up",
                                             FieldPages.log(ui)),
+                                    Samples.example(ui, "Motion: wheel steps glide", Samples.motion(ui, context)),
                                     Samples.example(ui, "Right aligned rows", ui.textArea()
                                             .setTextAlignment(HorizontalAlignment.RIGHT)
                                             .setVisibleLines(4)

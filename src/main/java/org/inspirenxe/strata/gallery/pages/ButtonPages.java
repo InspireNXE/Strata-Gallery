@@ -333,7 +333,10 @@ final class ButtonPages {
                             Samples.section(ui, "States",
                                     Samples.example(ui, "Off", ui.toggleSwitch("Hide sold")),
                                     Samples.example(ui, "On", ui.toggleSwitch("Only mine").setSelected(true)),
-                                    Samples.example(ui, "Disabled", ui.toggleSwitch("Locked").setEnabled(false))));
+                                    Samples.example(ui, "Disabled", ui.toggleSwitch("Locked").setEnabled(false))),
+                            Samples.section(ui, "Motion",
+                                    Samples.example(ui, "With motion on, the knob slides", Samples.motion(ui,
+                                            context))));
                 }));
     }
 

@@ -4,7 +4,9 @@
 
 Every [Strata](https://github.com/InspireNXE/Strata) control on a page of its own, running on the Java2D adapter from [Strata-Swing](https://github.com/InspireNXE/Strata-Swing). Pick a control in the sidebar to see its kinds and states, try it, and watch the events it fires in the log under the page. Requests, the events a handler can refuse, show with a question mark and the value asked for. Reports show the change.
 
-The Screens section holds a component written from scratch on `CustomComponent`.
+The Screens section holds a component written from scratch on `CustomComponent`, data binding, work from other threads, animation, a screen that refuses to close and styling. Input has commands and shortcuts, focus, cursors, file dialogs and drag and drop, Drawing the shapes, pixels and hairlines a component can paint, and Language a page laid out right to left and plural forms that follow the language.
+
+Beside the page title, a selector sets the panel's scale, and a check box lays the page out right to left. A page can turn on the theme's built-in motion, switch the language or set theme metrics for as long as it is open.
 
 ## Running
 

@@ -338,7 +338,7 @@ final class PanePages {
                     }
                     return Samples.column(ui,
                             Samples.section(ui, "A settings screen: drag the width to see AUTO switch", frame),
-                            Samples.row(ui, width, modes).setSpacing(12));
+                            Samples.row(ui, width, modes, Samples.motion(ui, context)).setSpacing(12));
                 }),
                 new Page(SECTION, "Scroll bar", "A scroll bar on its own, for content that scrolls itself. It is "
                         + "not focusable until told to be, so the content it scrolls keeps the keys.", """

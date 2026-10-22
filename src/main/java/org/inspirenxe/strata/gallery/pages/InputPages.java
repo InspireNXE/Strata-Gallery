@@ -19,6 +19,9 @@ import org.inspirenxe.strata.api.ComponentFactory;
 import org.inspirenxe.strata.api.command.Command;
 import org.inspirenxe.strata.api.component.Component;
 import org.inspirenxe.strata.api.component.CursorKind;
+import org.inspirenxe.strata.api.component.Focusable;
+import org.inspirenxe.strata.api.component.Validation;
+import org.inspirenxe.strata.api.control.attribute.text.HasText;
 import org.inspirenxe.strata.api.control.attribute.value.Toggle;
 import org.inspirenxe.strata.api.control.button.Button;
 import org.inspirenxe.strata.api.control.button.CheckBox;
@@ -26,6 +29,7 @@ import org.inspirenxe.strata.api.control.display.Label;
 import org.inspirenxe.strata.api.control.field.TextBox;
 import org.inspirenxe.strata.api.control.menu.Menu;
 import org.inspirenxe.strata.api.control.menu.MenuBar;
+import org.inspirenxe.strata.api.event.input.InputEvents;
 import org.inspirenxe.strata.api.file.FileDialog;
 import org.inspirenxe.strata.api.file.FileDialogs;
 import org.inspirenxe.strata.api.input.Key;
@@ -92,6 +96,21 @@ final class InputPages {
                         // How a stroke reads in a hint
                         final Text hint = ui.keyText(KeyStroke.shortcut(Key.S));
                         """, context -> InputPages.commands(context)),
+                new Page(SECTION, "Focus", "A component can ask whether focus is somewhere inside it, and hear when "
+                        + "focus enters or leaves it, with the component on the other side. A form section can "
+                        + "check its fields when focus leaves it for good, instead of on every field.", """
+                        final StackPanel section = ui.stackPanel().add(name).add(email).add(submit);
+                        // Fired on the section, and on each ancestor that focus crosses, after FOCUS_LOST of the old
+                        // owner and before FOCUS_GAINED of the new one
+                        section.onEvent(InputEvents.FOCUS_ENTER, event -> status.setText("In, from "
+                                + event.other().map(Object::toString).orElse("nowhere")));
+                        section.onEvent(InputEvents.FOCUS_EXIT, event -> {
+                            // Focus left the whole section, so check it now
+                            name.setValidation(name.text().isBlank() ? Validation.error(Text.of("Required"))
+                                    : Validation.VALID);
+                        });
+                        final boolean inside = section.isFocusWithin();
+                        """, context -> InputPages.focus(context)),
                 new Page(SECTION, "Cursors", "The pointer's shape says what a spot does. Every kind has a "
                         + "fallback for platforms that cannot show it, so a drag's Copy or No drop cursor still "
                         + "shows something. Move the pointer over a tile.", """
@@ -159,6 +178,60 @@ final class InputPages {
                         + "commands of the screen, then menu bars. While a modal dialog is open, the screen's own "
                         + "shortcuts wait. Alt with a letter presses the control with that mnemonic, and Alt alone "
                         + "or F10 moves along a menu bar with the arrows."));
+    }
+
+    private static Component<?> focus(final PageContext context) {
+        final ComponentFactory ui = context.ui();
+        final Label within = ui.label("Focus is outside the section");
+        final TextBox name = ui.textBox().setPlaceholder("Name").setWidth(160);
+        final TextBox email = ui.textBox().setPlaceholder("Email").setWidth(160);
+        final Button submit = ui.button("Submit");
+        final StackPanel section = ui.stackPanel().setSpacing(4).setPadding(8).setBackground(TILE)
+                .setBorder(TILE_BORDER)
+                .add(ui.label("A form section").setStyle(TextStyle.DEFAULT.withBold(true)))
+                .add(name)
+                .add(email)
+                .add(submit);
+        section.onEvent(InputEvents.FOCUS_ENTER, event -> {
+            context.log("focus_enter   Form section   from " + InputPages.name(event.other()));
+            within.setText("isFocusWithin() = " + section.isFocusWithin());
+        });
+        section.onEvent(InputEvents.FOCUS_EXIT, event -> {
+            context.log("focus_exit   Form section   to " + InputPages.name(event.other()));
+            within.setText("isFocusWithin() = " + section.isFocusWithin());
+            // Focus left the whole section, not just a field, so the section checks its fields now
+            name.setValidation(name.text().isBlank() ? Validation.error(Text.of("Enter a name"))
+                    : Validation.VALID);
+            email.setValidation(email.text().contains("@") ? Validation.VALID
+                    : Validation.warning(Text.of("That does not look like an address")));
+        });
+        for (final Component<?> field : List.of(name, email, submit)) {
+            field.onEvent(Focusable.FOCUS_GAINED, event -> context.log("focus_gained   "
+                    + InputPages.name(Optional.of(field))));
+            field.onEvent(Focusable.FOCUS_LOST, event -> context.log("focus_lost   "
+                    + InputPages.name(Optional.of(field))));
+        }
+        final TextBox outside = ui.textBox().setPlaceholder("Outside the section").setWidth(160);
+        return Samples.column(ui,
+                Samples.section(ui, "A form section",
+                        Samples.example(ui, "Tab between the fields: the section hears nothing. Tab out of it, or "
+                                + "click the box beside it, and it checks the fields", section),
+                        Samples.example(ui, "Where focus can go", outside),
+                        Samples.example(ui, "What the section reports", within)),
+                Samples.note(ui, "When focus moves from A to B, A's FOCUS_LOST fires first, then FOCUS_EXIT on each "
+                        + "ancestor of A that is not an ancestor of B, innermost first, then FOCUS_ENTER on each "
+                        + "ancestor of B that is not one of A's, outermost first, then FOCUS_GAINED on B. A control "
+                        + "that keeps focus on a part of its own, such as the spinner's field, reports its own "
+                        + "focus events too."));
+    }
+
+    private static String name(final Optional<? extends Component<?>> component) {
+        return component.map(found -> {
+            final String type = found.getClass().getSimpleName().replace("Impl", "");
+            return found instanceof final HasText<?> text && !text.text().isEmpty()
+                    ? type + " \"" + text.text().plain() + "\""
+                    : type;
+        }).orElse("outside");
     }
 
     private static Component<?> cursors(final PageContext context) {
