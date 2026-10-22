@@ -69,6 +69,8 @@ final class Swatches extends CustomComponent<Swatches> {
         final int index = (int) (event.localX() / (SIZE + GAP));
         if (index >= 0 && index < this.colors.length) {
             this.selected = index;
+            // Only the look changed, so a panel that paints on demand needs to be told
+            this.repaint();
             event.consume();
         }
     }

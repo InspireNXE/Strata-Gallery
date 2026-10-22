@@ -44,6 +44,9 @@ public final class Pages {
         pages.addAll(PanePages.pages());
         pages.addAll(WindowPages.pages());
         pages.addAll(LayoutPages.pages());
+        pages.addAll(InputPages.pages());
+        pages.addAll(DragPages.pages());
+        pages.addAll(DrawingPages.pages());
         pages.addAll(ScreenPages.pages());
         return List.copyOf(pages);
     }
