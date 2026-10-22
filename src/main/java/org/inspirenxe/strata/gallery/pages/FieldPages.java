@@ -16,16 +16,30 @@
 package org.inspirenxe.strata.gallery.pages;
 
 import org.inspirenxe.strata.api.ComponentFactory;
+import org.inspirenxe.strata.api.component.Component;
+import org.inspirenxe.strata.api.component.Focusable;
+import org.inspirenxe.strata.api.component.Validation;
 import org.inspirenxe.strata.api.control.attribute.text.TextEntry;
 import org.inspirenxe.strata.api.control.attribute.text.TextInput;
+import org.inspirenxe.strata.api.control.attribute.value.Ranged;
+import org.inspirenxe.strata.api.control.button.Button;
+import org.inspirenxe.strata.api.control.button.CheckBox;
 import org.inspirenxe.strata.api.control.display.Label;
 import org.inspirenxe.strata.api.control.field.ColorPicker;
 import org.inspirenxe.strata.api.control.field.PasswordTextBox;
+import org.inspirenxe.strata.api.control.field.Slider;
+import org.inspirenxe.strata.api.control.field.Spinner;
+import org.inspirenxe.strata.api.control.field.TextArea;
 import org.inspirenxe.strata.api.control.field.TextBox;
+import org.inspirenxe.strata.api.layout.HorizontalAlignment;
 import org.inspirenxe.strata.api.layout.Orientation;
 import org.inspirenxe.strata.api.layout.StackPanel;
+import org.inspirenxe.strata.api.text.Text;
+import org.inspirenxe.strata.gallery.JavaHighlighter;
 import org.inspirenxe.strata.gallery.Page;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Locale;
 
@@ -62,9 +76,24 @@ final class FieldPages {
                             }
                         });
                         panel.add(city).add(quantity).add(status);
+
+                        // Edits from code keep the user's place and can be undone; EDITED reports them
+                        final Button mention = ui.button("Mention")
+                                .onEvent(Button.PRESSED, event -> city.insert("@Ana "));
+                        final Button undo = ui.button("Undo").onEvent(Button.PRESSED, event -> city.undo());
+                        city.onEvent(TextInput.EDITED, event -> undo.setEnabled(city.canUndo()));
+                        // The caret and the selection are reported too
+                        city.onEvent(TextEntry.CARET_MOVED, event -> status.setText(
+                                event.value().anchor() + " to " + event.value().caret()));
+
+                        // Right aligned, and a drop-down list of every suggestion, like an editable combo box
+                        final TextBox amount = ui.textBox().setTextAlignment(HorizontalAlignment.RIGHT);
+                        final TextBox fruit = ui.textBox().setDropDown(true)
+                                .setSuggestionProvider(TextBox.SuggestionProvider.words(List.of("Apple", "Fig")));
                         """, context -> {
                     final ComponentFactory ui = context.ui();
-                    context.watch(TextBox.SUBMIT, TextBox.SUBMITTED, TextBox.COMPLETE, TextBox.COMPLETED);
+                    context.watch(TextBox.SUBMIT, TextBox.SUBMITTED, TextBox.COMPLETE, TextBox.COMPLETED,
+                            TextEntry.CARET_MOVED);
                     return Samples.column(ui,
                             Samples.section(ui, "Kinds",
                                     Samples.example(ui, "Plain", ui.textBox().setText("Lisbon")),
@@ -96,7 +125,35 @@ final class FieldPages {
                                     Samples.example(ui, "Upper case (value rewritten)", ui.textBox()
                                             .onEvent(TextInput.EDIT, event -> event.setValue(
                                                     event.value().toUpperCase(Locale.ROOT)))),
-                                    Samples.example(ui, "Wide", ui.textBox().setText("Stretches to 240").setWidth(240))));
+                                    Samples.example(ui, "Wide", ui.textBox().setText("Stretches to 240").setWidth(240))),
+                            Samples.section(ui, "Edits from code",
+                                    Samples.example(ui, "Insert, append and replace keep your place; Undo and Redo "
+                                            + "follow canUndo and canRedo", FieldPages.codeEdits(ui))),
+                            Samples.section(ui, "Alignment and the drop-down",
+                                    Samples.example(ui, "Right aligned", ui.textBox()
+                                            .setTextAlignment(HorizontalAlignment.RIGHT)
+                                            .setText("1,250.00")
+                                            .setWidth(120)),
+                                    Samples.example(ui, "Centered", ui.textBox()
+                                            .setTextAlignment(HorizontalAlignment.CENTER)
+                                            .setText("Centered")
+                                            .setWidth(120)),
+                                    Samples.example(ui, "An editable combo box: the arrow, or Alt+Down, lists every "
+                                            + "fruit", ui.textBox()
+                                            .setDropDown(true)
+                                            .setSuggestionProvider(TextBox.SuggestionProvider.words(FieldPages.FRUIT))
+                                            .setMaxVisibleSuggestions(6)
+                                            .setText("Mango")
+                                            .setWidth(140))),
+                            Samples.note(ui, "Right click a box for its menu: Undo, Redo, Cut, Copy, Paste, Delete "
+                                    + "and Select all. Ctrl+Z and Ctrl+Y undo and redo, and typing merges into one "
+                                    + "step until a pause or a space. Drag selected text from one box into another "
+                                    + "to move it, with Control to copy."),
+                            Samples.section(ui, "Dragging text between boxes",
+                                    Samples.example(ui, "Select some words and drag them across", ui.textBox()
+                                            .setText("Ana, Ben and Cleo")
+                                            .setWidth(180)),
+                                    Samples.example(ui, "Drop them here", ui.textBox().setWidth(180))));
                 }),
                 new Page(SECTION, "Password text box", "A single line for a password. It draws a mask, keeps "
                         + "its text out of events, snapshots and the clipboard, and gives it to code only as chars. "
@@ -121,7 +178,7 @@ final class FieldPages {
                         """, context -> {
                     final ComponentFactory ui = context.ui();
                     context.watch(PasswordTextBox.REVEAL, PasswordTextBox.REVEALED, PasswordTextBox.SUBMIT,
-                            PasswordTextBox.SUBMITTED);
+                            PasswordTextBox.SUBMITTED, TextEntry.CARET_MOVED);
                     final PasswordTextBox password = ui.passwordTextBox().setPlaceholder("Password");
                     final PasswordTextBox confirm = ui.passwordTextBox()
                             .setPlaceholder("Repeat password")
@@ -152,7 +209,10 @@ final class FieldPages {
                                             .setCodePointFilter(Character::isDigit)
                                             .setPlaceholder("PIN")
                                             .setWidth(60)),
-                                    Samples.example(ui, "Confirm pair", pair)),
+                                    Samples.example(ui, "Confirm pair", pair),
+                                    Samples.example(ui, "Right aligned", ui.passwordTextBox()
+                                            .setTextAlignment(HorizontalAlignment.RIGHT)
+                                            .setPassword("pears".toCharArray()))),
                             Samples.section(ui, "States",
                                     Samples.example(ui, "Read-only", ui.passwordTextBox()
                                             .setReadOnly(true)
@@ -178,8 +238,22 @@ final class FieldPages {
                                 .setWrap(false)
                                 .setReadOnly(true);
                         panel.add(notes).add(count).add(log);
+
+                        // A code editor: Tab types a tab, and the status line follows the caret
+                        final TextArea editor = ui.textArea()
+                                .setAcceptsTab(true)
+                                .setWrap(false)
+                                .setHighlighter(JavaHighlighter.INSTANCE);
+                        editor.onEvent(TextEntry.CARET_MOVED, event -> status.setText("Line "
+                                + (editor.lineOf(editor.caret()) + 1) + ", column "
+                                + (editor.columnOf(editor.caret()) + 1)));
+                        // Go to line 20, and show it
+                        editor.select(editor.lineStart(19), editor.lineStart(19)).scrollToCaret();
+                        // append adds to a log without moving a reader's scroll
+                        log.append("Order 1042 shipped\\n");
                         """, context -> {
                     final ComponentFactory ui = context.ui();
+                    context.watch(TextEntry.CARET_MOVED);
                     return Samples.column(ui,
                             Samples.section(ui, "Kinds",
                                     Samples.example(ui, "Wrapping", ui.textArea().setText(FieldPages.NOTES)),
@@ -198,7 +272,17 @@ final class FieldPages {
                                     Samples.example(ui, "Disabled", ui.textArea()
                                             .setVisibleLines(3)
                                             .setText("Locked until the order closes.")
-                                            .setEnabled(false))));
+                                            .setEnabled(false))),
+                            Samples.section(ui, "A code editor",
+                                    Samples.example(ui, "Tab types a tab, and the status follows the caret",
+                                            FieldPages.codeEditor(ui)),
+                                    Samples.example(ui, "A log: append adds lines while you read further up",
+                                            FieldPages.log(ui)),
+                                    Samples.example(ui, "Right aligned rows", ui.textArea()
+                                            .setTextAlignment(HorizontalAlignment.RIGHT)
+                                            .setVisibleLines(4)
+                                            .setText("12.50\n8.00\n15.75\n6.25")
+                                            .setWidth(100))));
                 }),
                 new Page(SECTION, "Spinner", "A number in a field with step buttons. The wheel and the arrow keys "
                         + "step too, and typed text becomes the value on Enter or when the field loses focus.", """
@@ -214,10 +298,28 @@ final class FieldPages {
                                 .setValue(12.5)
                                 .setWidth(80);
                         panel.add(quantity).add(price).add(total);
+
+                        // The spinner is one tab stop; its focus events fire on the spinner, not its field
+                        quantity.onEvent(Focusable.FOCUS_GAINED, event -> status.setText("Editing"));
+                        // Numbers follow the translator's language: 2,5 in German
                         """, context -> {
                     final ComponentFactory ui = context.ui();
+                    final Spinner focused = ui.spinner().setRange(1, 64).setValue(16);
+                    focused.onEvent(Focusable.FOCUS_GAINED, event -> context.log("focus_gained   Spinner"));
+                    focused.onEvent(Focusable.FOCUS_LOST, event -> context.log("focus_lost   Spinner"));
+                    final StackPanel column = ui.stackPanel().setSpacing(4);
+                    for (final double value : new double[] {2.5, 1250.75, 8}) {
+                        column.add(ui.spinner()
+                                .setRange(0, 5000)
+                                .setDecimals(2)
+                                .setValue(value)
+                                .setTextAlignment(HorizontalAlignment.RIGHT)
+                                .setWidth(90));
+                    }
                     return Samples.column(ui,
                             Samples.section(ui, "Kinds",
+                                    Samples.example(ui, "One tab stop, focus events on the spinner (see the log)",
+                                            focused),
                                     Samples.example(ui, "Whole numbers, 1 to 64", ui.spinner()
                                             .setRange(1, 64)
                                             .setValue(16)),
@@ -240,7 +342,13 @@ final class FieldPages {
                                             .setValue(0)),
                                     Samples.example(ui, "Disabled", ui.spinner()
                                             .setValue(3)
-                                            .setEnabled(false))));
+                                            .setEnabled(false))),
+                            Samples.section(ui, "Alignment and language",
+                                    Samples.example(ui, "A column of right aligned spinners", column),
+                                    Samples.example(ui, "Language: German writes 2,5 and takes both separators",
+                                            Samples.languages(ui, context))),
+                            Samples.note(ui, "Hold a step button and it repeats after a short delay, as a held key "
+                                    + "does. A trackpad's scroll adds up until it is worth one step."));
                 }),
                 new Page(SECTION, "Slider", "Picks a number from a range by dragging, clicking or the arrow keys. A "
                         + "step snaps the value, and a label function draws text over the track.", """
@@ -257,9 +365,34 @@ final class FieldPages {
                                 .setValue(7)
                                 .setHeight(80);
                         panel.add(volume).add(level).add(status);
+
+                        // CHANGED fires all along a drag; COMMITTED once, when the user lets go
+                        volume.onEvent(Slider.COMMITTED, event -> status.setText("Saved " + event.value()));
+                        // Ticks every 10 with two minor ticks between, and values that snap to them
+                        final Slider tuned = ui.slider().setRange(0, 100).setTicks(10, 2).setSnapToTicks(true);
                         """, context -> {
                     final ComponentFactory ui = context.ui();
+                    context.watch(Slider.COMMITTED);
                     return Samples.column(ui,
+                            Samples.section(ui, "Changed and committed",
+                                    Samples.example(ui, "CHANGED all along a drag, COMMITTED once", ui.slider()
+                                            .setRange(0, 100)
+                                            .setStep(1)
+                                            .setValue(80)
+                                            .setLabel(value -> "Volume " + (int) value)
+                                            .setWidth(170)),
+                                    Samples.example(ui, "Ticks every 10, two minor between", ui.slider()
+                                            .setRange(0, 100)
+                                            .setValue(40)
+                                            .setTicks(10, 2)
+                                            .setWidth(220)),
+                                    Samples.example(ui, "Snapping to the ticks", ui.slider()
+                                            .setRange(0, 100)
+                                            .setValue(40)
+                                            .setTicks(10, 2)
+                                            .setSnapToTicks(true)
+                                            .setLabel(value -> "Level " + (int) value)
+                                            .setWidth(220))),
                             Samples.section(ui, "Horizontal",
                                     Samples.example(ui, "Continuous", ui.slider().setValue(0.4)),
                                     Samples.example(ui, "Labeled percentage", ui.slider()
@@ -300,6 +433,10 @@ final class FieldPages {
                     final ComponentFactory ui = context.ui();
                     context.watch(ColorPicker.PICK, ColorPicker.PICKED);
                     return Samples.column(ui,
+                            Samples.note(ui, "The picker is a tab stop before its hex field. With it focused, the "
+                                    + "arrows move saturation and brightness by 1 percent, Shift by 10, Page Up and "
+                                    + "Page Down move the hue, and Home and End make the color opaque or clear while "
+                                    + "the alpha strip shows. The keys ask for the same PICK as a drag."),
                             Samples.section(ui, "Kinds",
                                     Samples.example(ui, "Opaque", ui.colorPicker().setColor(0xFF3A8EE6)),
                                     Samples.example(ui, "With alpha", ui.colorPicker()
@@ -308,6 +445,154 @@ final class FieldPages {
                                     Samples.example(ui, "Disabled", ui.colorPicker()
                                             .setColor(0xFF5AC85A)
                                             .setEnabled(false))));
+                }),
+                new Page(SECTION, "Validation", "Controls that say their value is wrong. A validator runs when it is "
+                        + "set and after each change, and an error or warning draws the control's invalid look and "
+                        + "puts its message first in the tooltip. Rest the pointer on a control. The log shows "
+                        + "VALIDATED.", """
+                        // A validator returns the validation for the control's value now
+                        final TextBox name = ui.textBox().setPlaceholder("Name")
+                                .setValidator(box -> box.text().isBlank()
+                                        ? Validation.error(Text.of("Enter a name"))
+                                        : Validation.VALID);
+                        final PasswordTextBox password = ui.passwordTextBox()
+                                .setValidator(box -> box.length() < 8
+                                        ? Validation.warning(Text.of("Short passwords are easy to guess"))
+                                        : Validation.VALID);
+                        final CheckBox agree = ui.checkBox("I agree")
+                                .setValidator(box -> box.isSelected()
+                                        ? Validation.VALID
+                                        : Validation.error(Text.of("Accept the terms to continue")));
+                        // A form is valid while none of its fields has an error
+                        final boolean ok = Stream.of(name, password, agree)
+                                .allMatch(field -> field.validation().isValid());
+                        """, context -> {
+                    final ComponentFactory ui = context.ui();
+                    return Samples.column(ui,
+                            Samples.section(ui, "Text",
+                                    Samples.example(ui, "A name is required (error)", ui.textBox()
+                                            .setPlaceholder("Name")
+                                            .setValidator(box -> box.text().isBlank()
+                                                    ? Validation.error(Text.of("Enter a name"))
+                                                    : Validation.VALID)),
+                                    Samples.example(ui, "Under 8 characters warns", ui.passwordTextBox()
+                                            .setPlaceholder("Password")
+                                            .setValidator(box -> box.length() < 8
+                                                    ? Validation.warning(Text.of("Short passwords are easy to guess"))
+                                                    : Validation.VALID)),
+                                    Samples.example(ui, "A selection is required", ui.<String>comboBox()
+                                            .clearSelection()
+                                            .setItems(List.of("Brazil", "Japan", "Norway"))
+                                            .setPlaceholder("Pick a country")
+                                            .setValidator(box -> box.selected().isEmpty()
+                                                    ? Validation.error(Text.of("Pick a country"))
+                                                    : Validation.VALID)
+                                            .setWidth(140))),
+                            Samples.section(ui, "Choices and numbers",
+                                    Samples.example(ui, "Must be checked", ui.checkBox("I agree")
+                                            .setValidator(box -> box.isSelected()
+                                                    ? Validation.VALID
+                                                    : Validation.error(Text.of("Accept the terms to continue")))),
+                                    Samples.example(ui, "At most 50 per order", ui.spinner()
+                                            .setRange(0, 100)
+                                            .setValue(60)
+                                            .setValidator(box -> box.value() > 50
+                                                    ? Validation.error(Text.of("At most 50 per order"))
+                                                    : Validation.VALID)),
+                                    Samples.example(ui, "Above 80 percent warns", ui.slider()
+                                            .setValue(0.9)
+                                            .setValidator(box -> box.value() > 0.8
+                                                    ? Validation.warning(Text.of("That is loud"))
+                                                    : Validation.VALID)
+                                            .setWidth(140))),
+                            Samples.section(ui, "Dates and colors",
+                                    Samples.example(ui, "Weekends are refused", ui.datePicker(LocalDate.of(2026, 11, 7))
+                                            .setValidator(box -> box.date()
+                                                    .filter(date -> date.getDayOfWeek() == DayOfWeek.SATURDAY
+                                                            || date.getDayOfWeek() == DayOfWeek.SUNDAY)
+                                                    .isPresent()
+                                                    ? Validation.error(Text.of("We do not deliver on weekends"))
+                                                    : Validation.VALID)),
+                                    Samples.example(ui, "Set from code: a warning", ui.textBox()
+                                            .setText("Maybe")
+                                            .setValidation(Validation.warning(Text.of("Check the spelling"))))),
+                            Samples.note(ui, "Errors outline the control in red, or draw the theme's invalid face; "
+                                    + "warnings outline it in amber. Change a value to see the validator run."));
                 }));
+    }
+
+    /**
+     * A text box with buttons that edit it from code, and Undo and Redo that follow its history.
+     */
+    private static Component<?> codeEdits(final ComponentFactory ui) {
+        final TextBox note = ui.textBox().setText("Hello ").setWidth(200);
+        final Button undo = ui.button("Undo").setEnabled(false);
+        final Button redo = ui.button("Redo").setEnabled(false);
+        note.onEvent(TextInput.EDITED, event -> {
+            undo.setEnabled(note.canUndo());
+            redo.setEnabled(note.canRedo());
+        });
+        undo.onEvent(Button.PRESSED, event -> note.undo());
+        redo.onEvent(Button.PRESSED, event -> note.redo());
+        return ui.stackPanel().setSpacing(4)
+                .add(note)
+                .add(Samples.row(ui,
+                        ui.button("Insert @Ana").onEvent(Button.PRESSED, event -> note.insert("@Ana ")),
+                        ui.button("Append").onEvent(Button.PRESSED, event -> note.append("(sent) ")),
+                        ui.button("Replace selection").onEvent(Button.PRESSED, event -> note.replace(
+                                note.selectionStart(), note.selectionEnd(), "Cleo")),
+                        undo,
+                        redo).setSpacing(4));
+    }
+
+    /**
+     * A small code editor: Tab types a tab, and a status line follows the caret.
+     */
+    private static Component<?> codeEditor(final ComponentFactory ui) {
+        final StringBuilder code = new StringBuilder("// Totals for the morning market\n");
+        for (int i = 1; i <= 29; i++) {
+            code.append("int crates").append(i).append(" = ").append(i * 3).append(";\n");
+        }
+        final TextArea editor = ui.textArea()
+                .setAcceptsTab(true)
+                .setWrap(false)
+                .setHighlighter(JavaHighlighter.INSTANCE)
+                .setVisibleLines(6)
+                .setText(code.toString())
+                .setWidth(300);
+        final Label position = ui.label("Line 1, column 1");
+        editor.onEvent(TextEntry.CARET_MOVED, event -> position.setText("Line " + (editor.lineOf(editor.caret()) + 1)
+                + ", column " + (editor.columnOf(editor.caret()) + 1)));
+        return ui.stackPanel().setSpacing(4)
+                .add(editor)
+                .add(position)
+                .add(Samples.row(ui,
+                        ui.button("Go to line 20").onEvent(Button.PRESSED, event -> {
+                            final int start = editor.lineStart(19);
+                            editor.select(start, start).scrollToCaret();
+                            editor.requestFocus();
+                        }),
+                        ui.button("Top").onEvent(Button.PRESSED, event -> editor.setScrollY(0))).setSpacing(4));
+    }
+
+    /**
+     * A read-only log that grows at the bottom. The reader's scroll stays where it is.
+     */
+    private static Component<?> log(final ComponentFactory ui) {
+        final int[] orders = {1040};
+        final StringBuilder text = new StringBuilder();
+        for (int i = 0; i < 8; i++) {
+            text.append("Order ").append(orders[0]++).append(" shipped\n");
+        }
+        final TextArea log = ui.textArea()
+                .setReadOnly(true)
+                .setWrap(false)
+                .setVisibleLines(4)
+                .setText(text.toString())
+                .setWidth(160);
+        return ui.stackPanel().setSpacing(4)
+                .add(log)
+                .add(ui.button("Add a line").onEvent(Button.PRESSED, event ->
+                        log.append("Order " + orders[0]++ + " shipped\n")));
     }
 }
