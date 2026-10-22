@@ -17,6 +17,7 @@ package org.inspirenxe.strata.gallery.pages;
 
 import org.inspirenxe.strata.api.ComponentFactory;
 import org.inspirenxe.strata.api.component.Component;
+import org.inspirenxe.strata.api.component.Validation;
 import org.inspirenxe.strata.api.component.registry.ComponentId;
 import org.inspirenxe.strata.api.control.attribute.item.ItemSource;
 import org.inspirenxe.strata.api.control.attribute.item.Selection;
@@ -25,14 +26,19 @@ import org.inspirenxe.strata.api.control.attribute.text.TextInput;
 import org.inspirenxe.strata.api.control.attribute.value.HasDate;
 import org.inspirenxe.strata.api.control.attribute.value.Ranged;
 import org.inspirenxe.strata.api.control.attribute.value.Toggle;
+import org.inspirenxe.strata.api.control.attribute.value.Validatable;
 import org.inspirenxe.strata.api.control.button.Button;
 import org.inspirenxe.strata.api.control.collection.ComboBox;
 import org.inspirenxe.strata.api.control.display.InfoBar;
+import org.inspirenxe.strata.api.control.display.Label;
 import org.inspirenxe.strata.api.control.field.Slider;
+import org.inspirenxe.strata.api.control.field.TextBox;
 import org.inspirenxe.strata.api.control.pane.Expander;
+import org.inspirenxe.strata.api.state.Converters;
 import org.inspirenxe.strata.api.state.Source;
 import org.inspirenxe.strata.api.state.State;
 import org.inspirenxe.strata.api.text.Text;
+import org.inspirenxe.strata.api.text.TextStyle;
 import org.inspirenxe.strata.gallery.Page;
 import org.inspirenxe.strata.gallery.PageContext;
 
@@ -157,6 +163,16 @@ final class ScreenPages {
                         // One way: computed sources
                         ui.label().bind(HasText.TEXT, () -> Text.of("Hello, " + model.name.get()));
                         ui.button("Save").bind(Component.ENABLED, model::canSave);
+
+                        // A field's text follows a State<Integer> through a converter; bad text keeps the last good value
+                        final State<Integer> quantity = State.of(3);
+                        final State<Validation> validation = State.of(Validation.VALID);
+                        ui.textBox().bind(TextInput.TEXT.convert(Converters.integer(1, 64)), quantity)
+                                .bind(Validatable.VALIDATION, validation);
+                        ui.button("Save").bind(Component.ENABLED, () -> validation.get().isValid());
+
+                        // Act on a change once a frame, and stop with the subscription
+                        ui.watch(model.volume, volume -> log("volume " + volume));
                         """, ScreenPages::dataBinding));
     }
 
@@ -197,7 +213,8 @@ final class ScreenPages {
         final ComboBox<String> sort = ui.<String>comboBox()
                 .bind(ItemSource.itemsKey(), model.sorts)
                 .bind(Selection.selectedItem(), model.sort);
-        return Samples.column(ui,
+        // The watch lives while the page is shown; it reads the volume once a frame, and never for the first value
+        final Component<?> page = Samples.column(ui,
                 Samples.section(ui, "One state, two controls",
                         Samples.example(ui, "Checkbox", ui.checkBox("Music").bind(Toggle.SELECTED, model.music)),
                         Samples.example(ui, "Toggle switch", ui.toggleSwitch("Music")
@@ -235,8 +252,40 @@ final class ScreenPages {
                         Samples.example(ui, "Enabled while the name is not blank", ui.button("Save")
                                 .bind(Component.ENABLED, model::canSave)
                                 .onEvent(Button.PRESSED, event -> context.log("saved for " + model.name.get())))),
+                Samples.section(ui, "Converted and validated",
+                        Samples.example(ui, "A quantity from 1 to 64; try 0, 70 or abc", ScreenPages.quantity(ui,
+                                model)),
+                        Samples.example(ui, "Watching the volume writes to the log once a frame, however fast the "
+                                + "slider moves", ui.slider().setWidth(140f).setStep(0.01d)
+                                .bind(Ranged.VALUE, model.volume))),
                 Samples.section(ui, "From code",
                         Samples.example(ui, "Sets every state back", ui.button("Reset")
                                 .onEvent(Button.PRESSED, event -> model.reset()))));
+        page.whileAttached(() -> ui.watch(model.volume, volume -> context.log("watch   volume is "
+                + Math.round(volume * 100d) + " percent")));
+        return page;
     }
+
+    /**
+     * A quantity text box bound to an integer state through a converter, with a hint, a Save button that follows the
+     * validation, and a Reset that sets the state from code.
+     */
+    private static Component<?> quantity(final ComponentFactory ui, final SettingsModel model) {
+        final State<Integer> quantity = State.of(3);
+        final State<Validation> validation = State.of(Validation.VALID);
+        final TextBox box = ui.textBox().setWidth(80)
+                .bind(TextInput.TEXT.convert(Converters.integer(1, 64)), quantity)
+                .bind(Validatable.VALIDATION, validation);
+        final Label shown = ui.label().bind(HasText.TEXT, () -> Text.of("quantity = " + quantity.get()));
+        final Label hint = ui.label().setStyle(TextStyle.DEFAULT.withColor(0xFFE05050))
+                .bind(HasText.TEXT, () -> validation.get().isValid() ? Text.empty() : validation.get().message());
+        final Button save = ui.button("Save").bind(Component.ENABLED, () -> validation.get().isValid());
+        final Button reset = ui.button("Reset to 3").onEvent(Button.PRESSED, event -> quantity.set(3));
+        return ui.stackPanel().setSpacing(4)
+                .add(box)
+                .add(shown)
+                .add(hint)
+                .add(Samples.row(ui, save, reset).setSpacing(6));
+    }
+
 }

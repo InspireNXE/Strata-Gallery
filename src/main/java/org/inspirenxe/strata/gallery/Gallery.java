@@ -75,6 +75,8 @@ public final class Gallery {
         final List<String> rest = new ArrayList<>(List.of(args));
         final String themeId = Gallery.takeOption(rest, "--theme");
         final String size = Gallery.takeOption(rest, "--size");
+        // The gallery's own messages, such as the plural forms, are in English until a page changes the language
+        SwingTranslations.use(Language.ENGLISH.translator());
         if (rest.size() == 2 && rest.get(0).equals("--snapshot")) {
             final ThemeChoice theme = themeId == null
                     ? ThemeChoice.FLAT

@@ -106,7 +106,7 @@ public record ThemeChoice(String id, String label, MinecraftInstall install, Min
         final MinecraftLook.Result result = MinecraftLook.build(assets);
         final Set<String> notes = new LinkedHashSet<>(result.notes());
         final SwingFont font = MinecraftFont.load(assets, notes).<SwingFont>map(bitmap -> bitmap).orElse(dialog);
-        return new GalleryLook(this, result.theme(), new SwingSprites(assets), result.chrome(), font, font,
+        return new GalleryLook(this, ThemeChoice.withCard(result.theme()), new SwingSprites(assets), result.chrome(), font, font,
                 List.copyOf(notes), assets);
     }
 
@@ -114,11 +114,25 @@ public record ThemeChoice(String id, String label, MinecraftInstall install, Min
      * Strata's flat theme with round dots for the message box icons, which it has no pictures for.
      */
     private static Theme flat() {
-        return Themes.flat().toBuilder()
+        return ThemeChoice.withCard(Themes.flat().toBuilder()
                 .paint(MessageBox.STYLE_ICON_INFO, Paint.rounded(0xFF4C86E0, 12f))
                 .paint(MessageBox.STYLE_ICON_SUCCESS, Paint.rounded(0xFF43A047, 12f))
                 .paint(MessageBox.STYLE_ICON_WARNING, Paint.rounded(0xFFE0A030, 12f))
                 .paint(MessageBox.STYLE_ICON_ERROR, Paint.rounded(0xFFE05050, 12f))
+                .build());
+    }
+
+    /**
+     * Adds the paints of the Styling page's card, whose states a theme can name: its own states, warning and
+     * selected, and the built-in hovered and disabled.
+     */
+    private static Theme withCard(final Theme theme) {
+        return theme.toBuilder()
+                .paint("gallery.card", Paint.rounded(0xFF3A3D43, 6f))
+                .paint("gallery.card.hovered", Paint.rounded(0xFF474B53, 6f))
+                .paint("gallery.card.selected", Paint.rounded(0xFF2F4A6E, 6f))
+                .paint("gallery.card.warning", Paint.rounded(0xFF6A5326, 6f))
+                .paint("gallery.card.disabled", Paint.rounded(0xFF2A2C30, 6f))
                 .build();
     }
 

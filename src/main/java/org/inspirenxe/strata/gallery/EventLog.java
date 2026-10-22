@@ -15,6 +15,8 @@
  */
 package org.inspirenxe.strata.gallery;
 
+import org.inspirenxe.strata.api.animation.Animation;
+import org.inspirenxe.strata.api.command.Command;
 import org.inspirenxe.strata.api.component.Component;
 import org.inspirenxe.strata.api.component.Validation;
 import org.inspirenxe.strata.api.control.attribute.item.Activatable;
@@ -123,6 +125,9 @@ final class EventLog {
             case Origin.Binding _ -> "binding";
             case Origin.Code _ -> "code";
         });
+        // What else is on the cause: a motion in progress, or a command that ran the press
+        event.cause().first(Animation.class).ifPresent(animation -> line.append(" (animation)"));
+        event.cause().first(Command.class).ifPresent(command -> line.append(" (command)"));
         this.add(line.toString());
     }
 

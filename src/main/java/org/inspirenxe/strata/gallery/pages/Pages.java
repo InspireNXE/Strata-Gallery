@@ -47,7 +47,9 @@ public final class Pages {
         pages.addAll(InputPages.pages());
         pages.addAll(DragPages.pages());
         pages.addAll(DrawingPages.pages());
+        pages.addAll(LanguagePages.pages());
         pages.addAll(ScreenPages.pages());
+        pages.addAll(AppPages.pages());
         return List.copyOf(pages);
     }
 }

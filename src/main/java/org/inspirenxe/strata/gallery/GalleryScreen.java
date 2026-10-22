@@ -240,6 +240,8 @@ public final class GalleryScreen implements Screen {
                 .add(page, 0, 1)
                 .setBackground(this.chrome.background())
                 .setAnchor(Anchor.FILL);
+        // The gallery's frame keeps its layout whatever language a page switches to
+        root.setFlowDirection(FlowDirection.LEFT_TO_RIGHT);
 
         sidebar.selectItem(this.first);
         this.show(this.first);
