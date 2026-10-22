@@ -16,7 +16,10 @@
 package org.inspirenxe.strata.gallery.pages;
 
 import org.inspirenxe.strata.api.ComponentFactory;
+import org.inspirenxe.strata.api.component.HasContextMenu;
+import org.inspirenxe.strata.api.control.attribute.popup.Closable;
 import org.inspirenxe.strata.api.control.attribute.text.HasText;
+import org.inspirenxe.strata.api.control.button.CheckBox;
 import org.inspirenxe.strata.api.control.button.Button;
 import org.inspirenxe.strata.api.control.field.TextBox;
 import org.inspirenxe.strata.api.control.menu.Flyout;
@@ -29,6 +32,9 @@ import org.inspirenxe.strata.api.layout.Orientation;
 import org.inspirenxe.strata.api.text.TextStyle;
 import org.inspirenxe.strata.gallery.Page;
 import org.inspirenxe.strata.gallery.PageContext;
+import org.inspirenxe.strata.api.layout.Anchor;
+import org.inspirenxe.strata.api.layout.AnchorPanel;
+import org.inspirenxe.strata.api.theme.Paint;
 
 import java.util.List;
 
@@ -46,17 +52,23 @@ final class MenuPages {
                 new Page(SECTION, "Menu bar", "A row of titles along the top of a screen, each opening a menu. While "
                         + "one is open, moving over another title opens that one instead.", """
                         final Label status = ui.label("");
+                        // The letter after an underscore is the mnemonic: Alt+F opens File, then O chooses Open
                         final Menu file = ui.menu()
-                                .addItem("New", "Ctrl+N", () -> status.setText("New file"))
-                                .addItem("Open", "Ctrl+O", () -> status.setText("Open a file"))
-                                .addSubmenu("Open recent", ui.menu().addItem("notes.md", () -> status.setText("Notes")))
+                                .addItem("_New", "Ctrl+N", () -> status.setText("New file"))
+                                .addItem("_Open", "Ctrl+O", () -> status.setText("Open a file"))
+                                .addSubmenu("Open _recent", ui.menu().addItem("notes.md", () -> status.setText("Notes")))
                                 .addSeparator()
-                                .addItem(ui.menuItem("Save").setShortcut("Ctrl+S").setEnabled(false));
+                                .addItem(ui.menuItem("_Save").setShortcut("Ctrl+S").setEnabled(false));
                         final Menu view = ui.menu()
-                                .addCheckItem("Show prices", true, shown -> status.setText("Prices " + shown));
+                                .addItem(ui.checkMenuItem("Show _prices").setShortcut("Ctrl+P").setSelected(true))
+                                .addSeparator()
+                                // Radio items clear the others in their group; items with no group share one
+                                .addItem(ui.radioMenuItem("By name").setGroup("sort").setSelected(true))
+                                .addItem(ui.radioMenuItem("By date").setGroup("sort"))
+                                .addItem(ui.radioMenuItem("By size").setGroup("sort"));
                         final MenuBar bar = ui.menuBar()
-                                .addMenu("File", file)
-                                .addMenu("View", view);
+                                .addMenu("_File", file)
+                                .addMenu("_View", view);
                         panel.add(bar).add(status);
                         """, context -> {
                     final ComponentFactory ui = context.ui();
@@ -64,31 +76,44 @@ final class MenuPages {
                             .addItem("budget.csv", () -> { })
                             .addItem("notes.md", () -> { }));
                     final Menu file = MenuPages.logged(context, ui.menu()
-                            .addItem("New", "Ctrl+N", () -> { })
-                            .addItem("Open", "Ctrl+O", () -> { })
-                            .addSubmenu("Open recent", recent)
+                            .addItem("_New", "Ctrl+N", () -> { })
+                            .addItem("_Open", "Ctrl+O", () -> { })
+                            .addSubmenu("Open _recent", recent)
                             .addSeparator()
-                            .addItem(ui.menuItem("Save").setShortcut("Ctrl+S").setEnabled(false))
-                            .addItem("Close", () -> { }));
+                            .addItem(ui.menuItem("_Save").setShortcut("Ctrl+S").setEnabled(false))
+                            .addItem("_Close", () -> { }));
                     final Menu view = MenuPages.logged(context, ui.menu()
-                            .addCheckItem("Show prices", true, shown -> { })
-                            .addCheckItem("Show sold", false, shown -> { })
+                            .addItem(ui.checkMenuItem("Show _prices").setShortcut("Ctrl+P").setSelected(true))
+                            .addCheckItem("Show s_old", false, shown -> { })
                             .addSeparator()
-                            .addItem("Zoom in", "Ctrl+=", () -> { })
-                            .addItem(ui.menuItem("Zoom out").setShortcut("Ctrl+-").setEnabled(false)));
+                            .addItem("Zoom _in", "Ctrl+=", () -> { })
+                            .addItem(ui.menuItem("Zoom _out").setShortcut("Ctrl+-").setEnabled(false)));
+                    final Menu sort = MenuPages.logged(context, ui.menu()
+                            .addItem(ui.radioMenuItem("By _name").setGroup("sort").setSelected(true))
+                            .addItem(ui.radioMenuItem("By _date").setGroup("sort"))
+                            .addItem(ui.radioMenuItem("By _size").setGroup("sort"))
+                            .addSeparator()
+                            .addItem(ui.radioMenuItem("Newest first").setGroup("order").setSelected(true))
+                            .addItem(ui.radioMenuItem("Oldest first").setGroup("order")));
                     final Menu help = MenuPages.logged(context, ui.menu()
-                            .addItem("About", () -> { }));
+                            .addItem("_About", () -> { }));
                     final MenuBar bar = ui.menuBar()
-                            .addMenu("File", file)
-                            .addMenu("View", view)
-                            .addMenu("Help", help);
+                            .addMenu("_File", file)
+                            .addMenu("_View", view)
+                            .addMenu("_Sort by", sort)
+                            .addMenu("_Help", help);
                     bar.setWidth(420);
                     return Samples.column(ui,
                             Samples.section(ui, "A bar",
                                     Samples.example(ui, "File has a submenu and a disabled item, View has check "
-                                            + "items", bar)),
+                                            + "items with a shortcut hint, Sort by has radio items in two groups",
+                                            bar)),
                             Samples.note(ui, "Click a title to open its menu. Escape or a click outside closes it. Open menus "
-                                    + "are overlays outside the page, so their choices are logged here by hand."));
+                                    + "are overlays outside the page, so their choices are logged here by hand."),
+                            Samples.note(ui, "Mnemonics: press Alt and a letter, or Alt alone or F10 to move along "
+                                    + "the bar with the arrows. In an open menu, Home and End jump to the ends and "
+                                    + "a letter picks the item with that mnemonic, or the next item that starts "
+                                    + "with it."));
                 }),
                 new Page(SECTION, "Context menu", "A menu opened on demand, at a point or below a component, such as "
                         + "on a right click. It closes when an item is chosen, on Escape, or on a click outside.", """
@@ -107,8 +132,14 @@ final class MenuPages {
                             }
                         });
                         panel.add(button).add(file).add(status);
+
+                        // Or give any component a menu: a right click, the Menu key or Shift+F10 opens it
+                        final AnchorPanel card = ui.anchorPanel().setContextMenu(actions);
+                        // The owner asks first; a handler can cancel, or swap the menu for this click
+                        card.onEvent(HasContextMenu.SHOW_CONTEXT_MENU, event -> event.setValue(menuFor(row)));
                         """, context -> {
                     final ComponentFactory ui = context.ui();
+                    context.watch(HasContextMenu.SHOW_CONTEXT_MENU);
                     final Menu sort = MenuPages.logged(context, ui.menu()
                             .addItem("By name", () -> { })
                             .addItem("By date", () -> { }));
@@ -124,10 +155,46 @@ final class MenuPages {
                     final Button corner = ui.button("At the corner");
                     corner.onEvent(Button.PRESSED, event -> actions.openAt(corner.bounds().right(),
                             corner.bounds().bottom()));
+                    final Menu owned = MenuPages.logged(context, ui.menu()
+                            .addItem("_Copy", "Ctrl+C", () -> { })
+                            .addItem("_Paste", "Ctrl+V", () -> { })
+                            .addSeparator()
+                            .addItem("Select _all", () -> { }));
+                    final AnchorPanel card = ui.anchorPanel()
+                            .setBackground(Paint.solid(0xFF3A3D43))
+                            .setContextMenu(owned)
+                            .add(ui.label("Right click, or Menu or Shift+F10").setAnchor(Anchor.CENTER))
+                            .setSize(220, 50);
+                    // A rewritten menu: each right click names the click it came from
+                    final int[] clicks = {0};
+                    final Menu base = MenuPages.logged(context, ui.menu().addItem("Placeholder", () -> { }));
+                    final AnchorPanel changing = ui.anchorPanel()
+                            .setBackground(Paint.solid(0xFF3A3D43))
+                            .setContextMenu(base)
+                            .add(ui.label("Each right click, a new menu").setAnchor(Anchor.CENTER))
+                            .setSize(220, 50);
+                    changing.onEvent(HasContextMenu.SHOW_CONTEXT_MENU, event -> {
+                        clicks[0]++;
+                        event.setValue(MenuPages.logged(context, ui.menu()
+                                .addItem("Click number " + clicks[0], () -> { })
+                                .addItem(ui.menuItem("Even clicks only").setEnabled(clicks[0] % 2 == 0))));
+                    });
+                    final AnchorPanel refused = ui.anchorPanel()
+                            .setBackground(Paint.solid(0xFF3A3D43))
+                            .setContextMenu(base)
+                            .add(ui.label("The request is canceled").setAnchor(Anchor.CENTER))
+                            .setSize(220, 50);
+                    refused.onEvent(HasContextMenu.SHOW_CONTEXT_MENU, event -> event.cancel());
                     return Samples.column(ui,
                             Samples.section(ui, "Opening",
                                     Samples.example(ui, "Below a button, with open(bounds)", below),
-                                    Samples.example(ui, "At a point, with openAt(x, y)", corner)));
+                                    Samples.example(ui, "At a point, with openAt(x, y)", corner)),
+                            Samples.section(ui, "A menu that belongs to a component",
+                                    Samples.example(ui, "setContextMenu: the pointer or the keys open it", card),
+                                    Samples.example(ui, "A handler on SHOW_CONTEXT_MENU rewrites it", changing),
+                                    Samples.example(ui, "A handler cancels the request", refused)),
+                            Samples.note(ui, "The text boxes on the Fields pages start with a context menu of their "
+                                    + "own: Undo, Redo, Cut, Copy, Paste, Delete and Select all."));
                 }),
                 new Page(SECTION, "Flyout", "A popup that shows any component, opened below a component or at a "
                         + "point. Focus moves into it and Tab stays inside. Escape closes it, and so does a click "
@@ -155,6 +222,15 @@ final class MenuPages {
                         final Button note = ui.button("Show a note");
                         note.onEvent(Button.PRESSED, event -> help.open(note.bounds()));
                         panel.add(button).add(file).add(note).add(status);
+
+                        // Escape and a click outside ask CLOSE first; a handler keeps the form open
+                        final CheckBox saved = ui.checkBox("Saved");
+                        final Flyout form = ui.flyout(ui.stackPanel().add(ui.textBox()).add(saved));
+                        form.onEvent(Closable.CLOSE, event -> {
+                            if (!saved.isSelected()) {
+                                event.cancel();
+                            }
+                        });
                         """, context -> {
                     final ComponentFactory ui = context.ui();
                     final TextBox name = ui.textBox().setPlaceholder("New name");
@@ -192,12 +268,28 @@ final class MenuPages {
                             .add(ui.button("Close").onEvent(Button.PRESSED, event -> pinned.close())));
                     final Button note = ui.button("Show a note");
                     note.onEvent(Button.PRESSED, event -> pinned.open(note.bounds()));
+                    final CheckBox saved = ui.checkBox("Saved, so it may close");
+                    final Flyout form = context.watchPopup(ui.flyout(ui.stackPanel()
+                            .setSpacing(4)
+                            .add(ui.label("Unsaved note"))
+                            .add(ui.textBox().setPlaceholder("Write something").setWidth(160))
+                            .add(saved)));
+                    form.onEvent(Closable.CLOSE, event -> {
+                        if (!saved.isSelected()) {
+                            event.cancel();
+                        }
+                    });
+                    final Button open = ui.button("Open the form");
+                    open.onEvent(Button.PRESSED, event -> form.open(open.bounds()));
                     return Samples.column(ui,
                             Samples.section(ui, "Opening",
                                     Samples.example(ui, "Below a button, with open(bounds)", below),
                                     Samples.example(ui, "At the pointer on a right click, with openAt(x, y)", target)),
                             Samples.section(ui, "Light dismiss",
                                     Samples.example(ui, "Off: stays open on a click outside", note)),
+                            Samples.section(ui, "Refusing to close",
+                                    Samples.example(ui, "Escape and a click outside ask Closable.CLOSE, which a "
+                                            + "handler cancels until the box is checked", open)),
                             Samples.note(ui, "Tab and Shift+Tab move between the flyout's fields and wrap. Events of "
                                     + "the controls inside a flyout reach handlers on the flyout, so the log hears "
                                     + "them there."));
