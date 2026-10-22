@@ -22,7 +22,7 @@ import org.inspirenxe.strata.api.screen.Screen;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.BooleanSupplier;
+import java.util.Map;
 import java.util.function.Consumer;
 
 /**
@@ -34,20 +34,48 @@ public final class PageContext {
     private final Consumer<String> log;
     private final List<EventType<?>> watched;
     private final List<Component<?>> popups;
-    private final Consumer<Boolean> motion;
-    private final BooleanSupplier motionOn;
+    private final Settings settings;
+
+    /**
+     * The gallery-wide settings a page can change while it is shown. The gallery puts them back when another page
+     * opens.
+     */
+    interface Settings {
+        /**
+         * Returns whether the settings can change anything, which they cannot while rendering snapshots.
+         */
+        default boolean canChange() {
+            return false;
+        }
+
+        default boolean motion() {
+            return false;
+        }
+
+        default void setMotion(final boolean on) {
+        }
+
+        default void setMetrics(final Map<String, Float> metrics) {
+        }
+
+        default Language language() {
+            return Language.ENGLISH;
+        }
+
+        default void setLanguage(final Language language) {
+        }
+    }
 
     PageContext(final ComponentFactory ui, final Consumer<Screen> open, final Consumer<String> log) {
-        this(ui, open, log, null, () -> false);
+        this(ui, open, log, new Settings() { });
     }
 
     PageContext(final ComponentFactory ui, final Consumer<Screen> open, final Consumer<String> log,
-                final Consumer<Boolean> motion, final BooleanSupplier motionOn) {
+                final Settings settings) {
         this.ui = ui;
         this.open = open;
         this.log = log;
-        this.motion = motion;
-        this.motionOn = motionOn;
+        this.settings = settings;
         this.watched = new ArrayList<>();
         this.popups = new ArrayList<>();
     }
@@ -87,7 +115,7 @@ public final class PageContext {
      * @return true in a window
      */
     public boolean canMotion() {
-        return this.motion != null;
+        return this.settings.canChange();
     }
 
     /**
@@ -97,7 +125,7 @@ public final class PageContext {
      * @return true while motion is on
      */
     public boolean motion() {
-        return this.motionOn.getAsBoolean();
+        return this.settings.motion();
     }
 
     /**
@@ -107,9 +135,36 @@ public final class PageContext {
      * @param on true for motion
      */
     public void setMotion(final boolean on) {
-        if (this.motion != null) {
-            this.motion.accept(on);
-        }
+        this.settings.setMotion(on);
+    }
+
+    /**
+     * Sets theme metrics for the whole gallery, such as {@code avatar.radius}, on top of the look's theme. The
+     * gallery clears them when another page opens. Does nothing while the gallery renders snapshots.
+     *
+     * @param metrics the metrics by key, empty for none
+     */
+    public void setMetrics(final Map<String, Float> metrics) {
+        this.settings.setMetrics(metrics);
+    }
+
+    /**
+     * Returns the language the gallery's translator is set to, English when a page opens.
+     *
+     * @return the language
+     */
+    public Language language() {
+        return this.settings.language();
+    }
+
+    /**
+     * Switches the gallery's translator to a language, for the numbers, plurals and direction that follow it. The
+     * gallery sets English again when another page opens. Does nothing while the gallery renders snapshots.
+     *
+     * @param language the language
+     */
+    public void setLanguage(final Language language) {
+        this.settings.setLanguage(language);
     }
 
     /**

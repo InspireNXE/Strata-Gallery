@@ -15,6 +15,9 @@
  */
 package org.inspirenxe.strata.gallery.theme;
 
+import org.inspirenxe.strata.api.control.window.MessageBox;
+import org.inspirenxe.strata.api.theme.Paint;
+import org.inspirenxe.strata.api.theme.Theme;
 import org.inspirenxe.strata.api.theme.Themes;
 import org.inspirenxe.strata.swing.AwtFont;
 import org.inspirenxe.strata.swing.SwingFont;
@@ -96,7 +99,7 @@ public record ThemeChoice(String id, String label, MinecraftInstall install, Min
     public GalleryLook load() throws IOException {
         final SwingFont dialog = new AwtFont(new Font(Font.DIALOG, Font.PLAIN, 9));
         if (this.install == null) {
-            return new GalleryLook(this, Themes.flat(), new SwingSprites(ThemeChoice.class.getClassLoader()),
+            return new GalleryLook(this, ThemeChoice.flat(), new SwingSprites(ThemeChoice.class.getClassLoader()),
                     Chrome.FLAT, dialog, new AwtFont(new Font(Font.MONOSPACED, Font.PLAIN, 9)), List.of(), () -> { });
         }
         final MinecraftAssets assets = MinecraftAssets.open(this.install, Optional.ofNullable(this.pack));
@@ -105,6 +108,18 @@ public record ThemeChoice(String id, String label, MinecraftInstall install, Min
         final SwingFont font = MinecraftFont.load(assets, notes).<SwingFont>map(bitmap -> bitmap).orElse(dialog);
         return new GalleryLook(this, result.theme(), new SwingSprites(assets), result.chrome(), font, font,
                 List.copyOf(notes), assets);
+    }
+
+    /**
+     * Strata's flat theme with round dots for the message box icons, which it has no pictures for.
+     */
+    private static Theme flat() {
+        return Themes.flat().toBuilder()
+                .paint(MessageBox.STYLE_ICON_INFO, Paint.rounded(0xFF4C86E0, 12f))
+                .paint(MessageBox.STYLE_ICON_SUCCESS, Paint.rounded(0xFF43A047, 12f))
+                .paint(MessageBox.STYLE_ICON_WARNING, Paint.rounded(0xFFE0A030, 12f))
+                .paint(MessageBox.STYLE_ICON_ERROR, Paint.rounded(0xFFE05050, 12f))
+                .build();
     }
 
     @Override

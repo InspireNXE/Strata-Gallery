@@ -18,7 +18,9 @@ package org.inspirenxe.strata.gallery;
 import org.inspirenxe.strata.api.ComponentFactory;
 import org.inspirenxe.strata.api.component.Component;
 import org.inspirenxe.strata.api.control.attribute.item.SingleSelection;
+import org.inspirenxe.strata.api.control.attribute.value.Toggle;
 import org.inspirenxe.strata.api.control.button.Button;
+import org.inspirenxe.strata.api.control.button.CheckBox;
 import org.inspirenxe.strata.api.control.collection.ComboBox;
 import org.inspirenxe.strata.api.control.collection.ListView;
 import org.inspirenxe.strata.api.control.collection.TreeView;
@@ -26,6 +28,7 @@ import org.inspirenxe.strata.api.control.display.Label;
 import org.inspirenxe.strata.api.control.field.TextArea;
 import org.inspirenxe.strata.api.layout.Anchor;
 import org.inspirenxe.strata.api.layout.GridLength;
+import org.inspirenxe.strata.api.layout.FlowDirection;
 import org.inspirenxe.strata.api.layout.GridPanel;
 import org.inspirenxe.strata.api.layout.HorizontalAlignment;
 import org.inspirenxe.strata.api.layout.ScrollPanel;
@@ -58,8 +61,14 @@ public final class GalleryScreen implements Screen {
     private final BiConsumer<ThemeChoice, Page> switchTheme;
     private Consumer<Boolean> motion;
     private boolean motionOn;
+    private Consumer<Map<String, Float>> metrics;
+    private boolean metricsOn;
+    private Consumer<Language> language;
+    private Language languageNow = Language.ENGLISH;
     private Consumer<Float> scale;
     private float scaleValue;
+    private boolean rightToLeft;
+    private StackPanel holder;
     private ComponentFactory ui;
     private Page current;
     private Label title;
@@ -111,6 +120,28 @@ public final class GalleryScreen implements Screen {
      */
     public GalleryScreen withMotion(final Consumer<Boolean> motion) {
         this.motion = motion;
+        return this;
+    }
+
+    /**
+     * Lets pages set theme metrics for themselves.
+     *
+     * @param metrics called with the metrics to set, or an empty map to clear them
+     * @return this screen
+     */
+    public GalleryScreen withMetrics(final Consumer<Map<String, Float>> metrics) {
+        this.metrics = metrics;
+        return this;
+    }
+
+    /**
+     * Lets pages switch the translator's language.
+     *
+     * @param language called with the language to switch to
+     * @return this screen
+     */
+    public GalleryScreen withLanguage(final Consumer<Language> language) {
+        this.language = language;
         return this;
     }
 
@@ -232,17 +263,63 @@ public final class GalleryScreen implements Screen {
             this.motionOn = false;
             this.motion.accept(false);
         }
-        final PageContext context = new PageContext(this.ui, this.open, this.log::add,
-                this.motion == null ? null : on -> {
-                    this.motionOn = on;
-                    this.motion.accept(on);
-                }, () -> this.motionOn);
+        if (this.metricsOn && this.metrics != null) {
+            this.metricsOn = false;
+            this.metrics.accept(Map.of());
+        }
+        if (this.language != null && this.languageNow != Language.ENGLISH) {
+            this.languageNow = Language.ENGLISH;
+            this.language.accept(Language.ENGLISH);
+        }
+        final PageContext context = new PageContext(this.ui, this.open, this.log::add, new PageContext.Settings() {
+            @Override
+            public boolean canChange() {
+                return GalleryScreen.this.motion != null;
+            }
+
+            @Override
+            public boolean motion() {
+                return GalleryScreen.this.motionOn;
+            }
+
+            @Override
+            public void setMotion(final boolean on) {
+                if (GalleryScreen.this.motion != null) {
+                    GalleryScreen.this.motionOn = on;
+                    GalleryScreen.this.motion.accept(on);
+                }
+            }
+
+            @Override
+            public void setMetrics(final Map<String, Float> metrics) {
+                if (GalleryScreen.this.metrics != null) {
+                    GalleryScreen.this.metricsOn = !metrics.isEmpty();
+                    GalleryScreen.this.metrics.accept(metrics);
+                }
+            }
+
+            @Override
+            public Language language() {
+                return GalleryScreen.this.languageNow;
+            }
+
+            @Override
+            public void setLanguage(final Language language) {
+                if (GalleryScreen.this.language != null) {
+                    GalleryScreen.this.languageNow = language;
+                    GalleryScreen.this.language.accept(language);
+                }
+            }
+        });
         this.log.clear();
         final StackPanel holder = this.ui.stackPanel()
                 .setSpacing(8)
                 .setPadding(10)
                 .add(page.content().apply(context))
                 .setAlignment(HorizontalAlignment.STRETCH, VerticalAlignment.TOP);
+        // The page alone is mirrored, so the sidebar stays where it is
+        holder.setFlowDirection(this.rightToLeft ? FlowDirection.RIGHT_TO_LEFT : null);
+        this.holder = holder;
         this.log.watch(holder, EventLog.ATTRIBUTE_EVENTS);
         this.log.watch(holder, context.watched());
         for (final Component<?> popup : context.popups()) {
@@ -265,9 +342,6 @@ public final class GalleryScreen implements Screen {
      */
     private Component<?> heading() {
         final boolean themes = this.switchTheme != null && this.themes.size() >= 2;
-        if (!themes && this.scale == null) {
-            return this.title;
-        }
         final GridPanel row = this.ui.gridPanel()
                 .rows(GridLength.auto())
                 .setSpacing(6, 0)
@@ -275,6 +349,17 @@ public final class GalleryScreen implements Screen {
                 .addColumn(GridLength.weighted(1))
                 .add(this.title.setAnchor(Anchor.MIDDLE_LEFT), 0, 0);
         int column = 1;
+        final CheckBox mirror = this.ui.checkBox("Right to left")
+                .setSelected(this.rightToLeft)
+                .setTooltip("Lays the page out for a language written from right to left")
+                .setAnchor(Anchor.MIDDLE_RIGHT);
+        mirror.onEvent(Toggle.TOGGLED, event -> {
+            this.rightToLeft = event.value();
+            if (this.holder != null) {
+                this.holder.setFlowDirection(this.rightToLeft ? FlowDirection.RIGHT_TO_LEFT : null);
+            }
+        });
+        row.addColumn(GridLength.auto()).add(mirror, 0, column++);
         if (this.scale != null) {
             final ComboBox<Float> selector = this.ui.<Float>comboBox(value -> (value == Math.rint(value) ? String.valueOf(value.intValue()) : value.toString())
                             + "x")

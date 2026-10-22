@@ -30,6 +30,7 @@ import org.inspirenxe.strata.swing.StrataPanel;
 import org.inspirenxe.strata.swing.SwingPlatform;
 import org.inspirenxe.strata.swing.SwingSnapshot;
 import org.inspirenxe.strata.swing.SwingTextMetrics;
+import org.inspirenxe.strata.swing.SwingTranslations;
 
 import java.awt.GraphicsEnvironment;
 import java.awt.Rectangle;
@@ -182,6 +183,7 @@ public final class Gallery {
         private final StrataPanel panel;
         private GalleryLook look;
         private boolean motion;
+        private Map<String, Float> metrics = Map.of();
 
         GalleryWindow(final List<ThemeChoice> themes, final GalleryLook look) {
             this.themes = themes;
@@ -217,6 +219,9 @@ public final class Gallery {
                     // The selector is on the screen being replaced, so wait until its event is done
                     (next, at) -> SwingUtilities.invokeLater(() -> this.switchTo(next, at)))
                     .withMotion(on -> SwingUtilities.invokeLater(() -> this.setMotion(on)))
+                    .withMetrics(metrics -> SwingUtilities.invokeLater(() -> this.setMetrics(metrics)))
+                    .withLanguage(language -> SwingUtilities.invokeLater(() ->
+                            SwingTranslations.use(language.translator())))
                     .withScale(this.panel.scale(), scale -> SwingUtilities.invokeLater(() -> this.panel.setScale(scale)));
         }
 
@@ -228,12 +233,23 @@ public final class Gallery {
             this.panel.screens().setTheme(this.themeWithMotion(this.look.theme()));
         }
 
+        /**
+         * Sets metrics a page wants on top of the look's theme, for every screen.
+         */
+        private void setMetrics(final Map<String, Float> metrics) {
+            this.metrics = metrics;
+            this.panel.screens().setTheme(this.themeWithMotion(this.look.theme()));
+        }
+
         private Theme themeWithMotion(final Theme theme) {
-            if (!this.motion) {
+            if (!this.motion && this.metrics.isEmpty()) {
                 return theme;
             }
             final Theme.Builder builder = theme.toBuilder();
-            MOTION.forEach(builder::metric);
+            if (this.motion) {
+                MOTION.forEach(builder::metric);
+            }
+            this.metrics.forEach(builder::metric);
             return builder.build();
         }
 
@@ -252,6 +268,7 @@ public final class Gallery {
             this.text.use(next.text());
             this.monospace.use(next.monospace());
             this.motion = false;
+            this.metrics = Map.of();
             this.panel.screens().setTheme(next.theme());
             this.panel.setSprites(next.sprites());
             this.panel.screens().push(this.screen(page));

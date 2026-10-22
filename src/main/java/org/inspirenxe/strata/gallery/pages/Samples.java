@@ -17,10 +17,16 @@ package org.inspirenxe.strata.gallery.pages;
 
 import org.inspirenxe.strata.api.ComponentFactory;
 import org.inspirenxe.strata.api.component.Component;
+import org.inspirenxe.strata.api.control.attribute.item.SingleSelection;
+import org.inspirenxe.strata.api.control.attribute.value.Toggle;
+import org.inspirenxe.strata.api.control.button.CheckBox;
+import org.inspirenxe.strata.api.control.collection.ComboBox;
 import org.inspirenxe.strata.api.layout.Orientation;
 import org.inspirenxe.strata.api.layout.StackPanel;
 import org.inspirenxe.strata.api.text.TextStyle;
 import org.inspirenxe.strata.api.visual.Visual;
+import org.inspirenxe.strata.gallery.Language;
+import org.inspirenxe.strata.gallery.PageContext;
 import org.inspirenxe.strata.swing.SwingVisuals;
 
 import java.awt.image.BufferedImage;
@@ -155,11 +161,63 @@ final class Samples {
     }
 
     /**
+     * Draws a wide 64 by 16 banner of diagonal stripes, to show how an image scales into a square.
+     *
+     * @return the banner
+     */
+    static Visual banner() {
+        final BufferedImage image = new BufferedImage(64, 16, BufferedImage.TYPE_INT_ARGB);
+        for (int y = 0; y < 16; y++) {
+            for (int x = 0; x < 64; x++) {
+                final boolean edge = x == 0 || y == 0 || x == 63 || y == 15;
+                image.setRGB(x, y, edge ? 0xFFE0E6F0 : ((x + y) / 4 % 2 == 0 ? 0xFF4C86E0 : 0xFF2F5FA8));
+            }
+        }
+        return SwingVisuals.image(image);
+    }
+
+    /**
      * The blue stand-in icon.
      *
      * @return the icon
      */
     static Visual icon() {
         return Samples.icon(0xFF4C86E0);
+    }
+
+    /**
+     * A language selector that switches the gallery's translator for as long as the page is open, and puts English
+     * back when another page opens.
+     *
+     * @param ui the factory
+     * @param context the page's context
+     * @return a combo box of the languages
+     */
+    static ComboBox<Language> languages(final ComponentFactory ui, final PageContext context) {
+        final ComboBox<Language> selector = ui.<Language>comboBox(Language::label)
+                .setItems(List.of(Language.values()))
+                .selectItem(context.language());
+        selector.setWidth(110);
+        selector.onEvent(SingleSelection.SELECTED, event -> selector.selected().ifPresent(context::setLanguage));
+        return selector;
+    }
+
+    /**
+     * A check box that turns the gallery's built-in motion on and off, for the controls whose durations the theme
+     * sets: the switch, expander, navigation view, scroll panel, lists, text area, progress bar and toasts. It is
+     * off when a page opens, and disabled while the gallery renders snapshots.
+     *
+     * @param ui the factory
+     * @param context the page's context
+     * @return a check box
+     */
+    static Component<?> motion(final ComponentFactory ui, final PageContext context) {
+        final CheckBox motion = ui.checkBox("Motion")
+                .setSelected(context.motion())
+                .setEnabled(context.canMotion())
+                .setTooltip("Turns on the theme's durations for the switch, expander, navigation view, scrolling, "
+                        + "progress bar and toasts");
+        motion.onEvent(Toggle.TOGGLED, event -> context.setMotion(event.value()));
+        return motion;
     }
 }
