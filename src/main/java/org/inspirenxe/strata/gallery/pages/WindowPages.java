@@ -20,6 +20,7 @@ import org.inspirenxe.strata.api.component.Component;
 import org.inspirenxe.strata.api.component.Tooltip;
 import org.inspirenxe.strata.api.control.attribute.popup.Closable;
 import org.inspirenxe.strata.api.control.button.Button;
+import org.inspirenxe.strata.api.control.display.InfoBar;
 import org.inspirenxe.strata.api.control.field.TextBox;
 import org.inspirenxe.strata.api.control.window.MessageBox;
 import org.inspirenxe.strata.api.control.window.Window;
@@ -75,9 +76,16 @@ final class WindowPages {
 
                         // Or open it over the screen as a dialog
                         ui.overlays().dialog(ui.window("Notice").add(ui.label("Saved.")));
+
+                        // The window pressed last draws its title bar as active; buttons maximize and collapse it
+                        final Window orders = ui.window("Orders")
+                                .setMaximizable(true)
+                                .setCollapsible(true)
+                                .onEvent(Window.MAXIMIZED, event -> status.setText("Maximized " + event.value()));
                         """, context -> {
                     final ComponentFactory ui = context.ui();
-                    context.watch(Window.RESIZE, Window.RESIZED);
+                    context.watch(Window.RESIZE, Window.RESIZED, Window.MAXIMIZE, Window.MAXIMIZED, Window.COLLAPSE,
+                            Window.COLLAPSED);
                     final Window settings = ui.window("Settings")
                             .setResizable(true)
                             .setEdgeResizable(true)
@@ -107,6 +115,12 @@ final class WindowPages {
                                                             .onEvent(Button.PRESSED, event ->
                                                                     settings.setVisible(true)))),
                                     Samples.example(ui, "Not movable or closable", fixed)),
+                            Samples.section(ui, "Active, maximized and collapsed",
+                                    Samples.example(ui, "Press a window to make it active. The arrow collapses it, the "
+                                            + "square maximizes it, and so does a double click on the bar",
+                                            WindowPages.twoWindows(ui))),
+                            Samples.note(ui, "Move the pointer over a window's grip or one of its corners to see "
+                                    + "the diagonal resize cursors."),
                             Samples.section(ui, "As a dialog",
                                     Samples.example(ui, "A small form", ui.button("Enter a quantity")
                                             .onEvent(Button.PRESSED, event -> WindowPages.quantity(context))),
@@ -155,6 +169,18 @@ final class WindowPages {
                             ui.overlays().dialog(box);
                         });
                         panel.add(ask).add(status);
+
+                        // Any row of buttons: a result is an id and a caption, and equal by id
+                        final MessageBox.Result save = MessageBox.Result.of("save", "Save");
+                        final MessageBox unsaved = ui.messageBox()
+                                .setTitle("Unsaved changes")
+                                .setText("Save the changes to the order before closing?")
+                                .setSeverity(InfoBar.Severity.WARNING)
+                                .setButtons(List.of(save, MessageBox.Result.of("discard", "Don't save"),
+                                        MessageBox.Result.CANCEL), MessageBox.Result.CANCEL)
+                                .setDefaultResult(save)
+                                // A component between the message and the buttons
+                                .setContent(ui.checkBox("Don't ask again"));
                         """, context -> {
                     final ComponentFactory ui = context.ui();
                     context.watch(MessageBox.ANSWER, MessageBox.ANSWERED);
@@ -184,9 +210,28 @@ final class WindowPages {
                                                                     answer.cancel();
                                                                 }
                                                             }))))),
+                            Samples.section(ui, "Custom buttons, severity and content",
+                                    Samples.example(ui, "Save, Don't save, Cancel, with a warning and a check box",
+                                            ui.button("Close the order").onEvent(Button.PRESSED, event ->
+                                                    WindowPages.message(context, WindowPages.unsaved(ui)))),
+                                    Samples.example(ui, "A destructive question: No is the default",
+                                            ui.button("Delete the chair").onEvent(Button.PRESSED, event ->
+                                                    WindowPages.message(context, ui.messageBox("Delete",
+                                                                    "Delete the listing for the oak chair?",
+                                                                    MessageBox.Buttons.YES_NO)
+                                                            .setSeverity(InfoBar.Severity.ERROR)
+                                                            .setDefaultResult(MessageBox.Result.NO)))),
+                                    Samples.example(ui, "Each severity", Samples.row(ui,
+                                            WindowPages.severity(context, InfoBar.Severity.INFO),
+                                            WindowPages.severity(context, InfoBar.Severity.SUCCESS),
+                                            WindowPages.severity(context, InfoBar.Severity.WARNING),
+                                            WindowPages.severity(context, InfoBar.Severity.ERROR)).setSpacing(4))),
                             Samples.section(ui, "What one looks like",
-                                    Samples.example(ui, "Shown inline for the snapshot", ui.messageBox("Delete",
-                                            "Delete the listing for the oak chair?", MessageBox.Buttons.YES_NO))));
+                                    Samples.example(ui, "Shown inline for the snapshot", WindowPages.unsaved(ui)),
+                                    Samples.example(ui, "A plain one", ui.messageBox("Delete",
+                                            "Delete the listing for the oak chair?", MessageBox.Buttons.YES_NO))),
+                            Samples.note(ui, "Escape presses the cancel button, which is the dismiss answer, and "
+                                    + "Enter presses the default button. The log shows both as the user's."));
                 }),
                 new Page(SECTION, "Toast", "A short notice in the top-right corner that closes itself after a "
                         + "while. A click closes it early, and it never takes focus.", """
@@ -386,5 +431,59 @@ final class WindowPages {
             }
             context.log(line.toString());
         });
+    }
+
+    /**
+     * Two windows in a panel, each maximizable and collapsible, so the active title bar shows on the one pressed.
+     */
+    private static Component<?> twoWindows(final ComponentFactory ui) {
+        final Window orders = ui.window("Orders")
+                .setMaximizable(true)
+                .setCollapsible(true)
+                .setResizable(true)
+                .add(ui.label("Order 1042: three crates of pears").setAnchor(Anchor.TOP_LEFT))
+                .setSize(190, 90)
+                .setMinSize(120, 60)
+                .setAnchor(Anchor.TOP_LEFT);
+        final Window notes = ui.window("Notes")
+                .setMaximizable(true)
+                .setCollapsible(true)
+                .setResizable(true)
+                .add(ui.label("Cleo keeps the books.").setAnchor(Anchor.TOP_LEFT))
+                .setSize(190, 90)
+                .setMinSize(120, 60)
+                .setAnchor(Anchor.BOTTOM_RIGHT);
+        return ui.anchorPanel()
+                .setBackground(SLOT)
+                .setPadding(6)
+                .add(orders)
+                .add(notes)
+                .setSize(420, 200);
+    }
+
+    /**
+     * A message box with a warning, three custom buttons, a default and a check box.
+     */
+    private static MessageBox unsaved(final ComponentFactory ui) {
+        final MessageBox.Result save = MessageBox.Result.of("save", "Save");
+        return ui.messageBox()
+                .setTitle("Unsaved changes")
+                .setText("Save the changes to the order before closing?")
+                .setSeverity(InfoBar.Severity.WARNING)
+                .setButtons(List.of(save, MessageBox.Result.of("discard", "Don't save"), MessageBox.Result.CANCEL),
+                        MessageBox.Result.CANCEL)
+                .setDefaultResult(save)
+                .setContent(ui.checkBox("Don't ask again"));
+    }
+
+    /**
+     * A button that opens a message box with a severity's icon.
+     */
+    private static Component<?> severity(final PageContext context, final InfoBar.Severity severity) {
+        final ComponentFactory ui = context.ui();
+        return ui.button(severity.name().charAt(0) + severity.name().substring(1).toLowerCase())
+                .onEvent(Button.PRESSED, event -> WindowPages.message(context, ui.messageBox(
+                        "A " + severity.name().toLowerCase() + " box", "The icon follows the severity.",
+                        MessageBox.Buttons.OK).setSeverity(severity)));
     }
 }

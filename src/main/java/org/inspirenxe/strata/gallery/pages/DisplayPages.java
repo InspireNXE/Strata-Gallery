@@ -20,9 +20,13 @@ import org.inspirenxe.strata.api.Strata;
 import org.inspirenxe.strata.api.appearance.Appearance;
 import org.inspirenxe.strata.api.component.Component;
 import org.inspirenxe.strata.api.component.Tooltip;
+import org.inspirenxe.strata.api.control.attribute.value.Toggle;
 import org.inspirenxe.strata.api.control.button.Button;
+import org.inspirenxe.strata.api.control.button.CheckBox;
+import org.inspirenxe.strata.api.control.display.Avatar;
 import org.inspirenxe.strata.api.control.display.Image;
 import org.inspirenxe.strata.api.control.display.InfoBar;
+import org.inspirenxe.strata.api.control.display.ProgressBar;
 import org.inspirenxe.strata.api.layout.Orientation;
 import org.inspirenxe.strata.api.layout.StackPanel;
 import org.inspirenxe.strata.api.text.Text;
@@ -31,8 +35,10 @@ import org.inspirenxe.strata.api.text.TextStyle;
 import org.inspirenxe.strata.api.theme.Paint;
 import org.inspirenxe.strata.api.theme.SpriteId;
 import org.inspirenxe.strata.gallery.Page;
+import org.inspirenxe.strata.gallery.PageContext;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * The Display section: controls that show something and take no input.
@@ -82,6 +88,10 @@ final class DisplayPages {
                                 .setWidth(120);
                         note.setText("Ben bought two crates before noon.");
                         panel.add(title).add(note).add(price).add(seller);
+
+                        // The letter after _ is a mnemonic: Alt+N focuses the box after the label
+                        final Label caption = ui.label("_Name").setMnemonicParsing(true);
+                        panel.add(caption).add(ui.textBox());
                         """, context -> {
                     final ComponentFactory ui = context.ui();
                     return Samples.column(ui,
@@ -113,6 +123,11 @@ final class DisplayPages {
                                                     Text.of(" apples at the morning market.")))
                                             .setWrap(true)
                                             .setWidth(180))),
+                            Samples.section(ui, "A mnemonic",
+                                    Samples.example(ui, "Alt+N focuses the box after the label; Alt shows the "
+                                            + "underline", Samples.row(ui,
+                                            ui.label("_Name").setMnemonicParsing(true),
+                                            ui.textBox().setWidth(140)).setSpacing(6))),
                             Samples.section(ui, "Styles",
                                     Samples.example(ui, "Bold", ui.label("Bold")
                                             .setStyle(TextStyle.DEFAULT.withBold(true))),
@@ -140,6 +155,10 @@ final class DisplayPages {
                                 .setTint(0x80FFFFFF)
                                 .setSize(80, 32);
                         panel.add(pear).add(banner);
+
+                        // COVER fills the slot and cuts what overflows; NONE keeps the image's own size
+                        final Image cover = ui.image(bannerVisual).setScaling(Image.Scaling.COVER).setSize(48, 48);
+                        final Image none = ui.image(bannerVisual).setScaling(Image.Scaling.NONE).setSize(48, 48);
                         """, context -> {
                     final ComponentFactory ui = context.ui();
                     return Samples.column(ui,
@@ -153,6 +172,18 @@ final class DisplayPages {
                                     Samples.example(ui, "Fit", DisplayPages.framed(ui, ui.image(Samples.icon())
                                             .setScaling(Image.Scaling.FIT)
                                             .setSize(80, 32)))),
+                            Samples.section(ui, "A wide banner in a 48 by 48 slot",
+                                    Samples.example(ui, "STRETCH", DisplayPages.framed(ui, ui.image(Samples.banner())
+                                            .setSize(48, 48))),
+                                    Samples.example(ui, "FIT", DisplayPages.framed(ui, ui.image(Samples.banner())
+                                            .setScaling(Image.Scaling.FIT)
+                                            .setSize(48, 48))),
+                                    Samples.example(ui, "COVER", DisplayPages.framed(ui, ui.image(Samples.banner())
+                                            .setScaling(Image.Scaling.COVER)
+                                            .setSize(48, 48))),
+                                    Samples.example(ui, "NONE", DisplayPages.framed(ui, ui.image(Samples.banner())
+                                            .setScaling(Image.Scaling.NONE)
+                                            .setSize(48, 48)))),
                             Samples.section(ui, "Tint",
                                     Samples.example(ui, "None", ui.image(Samples.icon(0xFFFFFFFF))
                                             .setImageSize(32, 32)),
@@ -176,10 +207,21 @@ final class DisplayPages {
                                 .setGroup(true)
                                 .setBadgeVisual(onlineDot);
                         panel.add(seller).add(ana).add(team);
+
+                        // A theme rounds every avatar with avatar.radius; half the size makes them round
+                        final ThemeRef round = ThemeRef.platform().override(Avatar.STYLE_RADIUS, 100f);
                         """, context -> {
                     final ComponentFactory ui = context.ui();
+                    final CheckBox round = ui.checkBox("Round: avatar.radius half the size")
+                            .setEnabled(context.canMotion());
+                    round.onEvent(Toggle.TOGGLED, event -> context.setMetrics(event.value()
+                            ? Map.of(Avatar.STYLE_RADIUS, 100f)
+                            : Map.of()));
                     final Member fay = new Member("Fay Ito", "seller", 0xFF43A047);
                     return Samples.column(ui,
+                            Samples.section(ui, "Corners",
+                                    Samples.example(ui, "Square by default; a theme with avatar.radius set rounds "
+                                            + "every avatar, and half the size makes it round", round)),
                             Samples.section(ui, "Pictures",
                                     Samples.example(ui, "A visual", ui.avatar().setVisual(Samples.icon(0xFFE0A030))),
                                     Samples.example(ui, "A value with an appearance", ui.avatar(fay)),
@@ -275,6 +317,22 @@ final class DisplayPages {
                                             .setValue(0.75)
                                             .setText("75%")
                                             .setWidth(160))),
+                            Samples.section(ui, "Vertical",
+                                    Samples.example(ui, "A health bar fills from the bottom", ui.progressBar()
+                                            .setOrientation(Orientation.VERTICAL)
+                                            .setValue(0.7)
+                                            .setHeight(110)),
+                                    Samples.example(ui, "With a caption", ui.progressBar()
+                                            .setOrientation(Orientation.VERTICAL)
+                                            .setValue(0.4)
+                                            .setText("40%")
+                                            .setHeight(110)),
+                                    Samples.example(ui, "Indeterminate", ui.progressBar()
+                                            .setOrientation(Orientation.VERTICAL)
+                                            .setIndeterminate(true)
+                                            .setHeight(110)),
+                                    Samples.example(ui, "The fill eases to a new value with motion on",
+                                            DisplayPages.easing(ui, context))),
                             Samples.section(ui, "Indeterminate",
                                     Samples.example(ui, "No caption", ui.progressBar()
                                             .setIndeterminate(true)
@@ -350,5 +408,19 @@ final class DisplayPages {
         return ui.stackPanel()
                 .setBackground(Paint.solid(0xFF4A4D55))
                 .add(content);
+    }
+
+    /**
+     * A progress bar with buttons that set it, and the motion check box, for the ease of its fill.
+     */
+    private static Component<?> easing(final ComponentFactory ui, final PageContext context) {
+        final ProgressBar bar = ui.progressBar().setValue(0.2).setWidth(160);
+        return ui.stackPanel().setSpacing(4)
+                .add(bar)
+                .add(Samples.row(ui,
+                        ui.button("0").onEvent(Button.PRESSED, event -> bar.setValue(0)),
+                        ui.button("50%").onEvent(Button.PRESSED, event -> bar.setValue(0.5)),
+                        ui.button("100%").onEvent(Button.PRESSED, event -> bar.setValue(1)),
+                        Samples.motion(ui, context)).setSpacing(4));
     }
 }
