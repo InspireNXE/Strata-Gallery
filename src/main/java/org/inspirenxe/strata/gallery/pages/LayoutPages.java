@@ -17,8 +17,14 @@ package org.inspirenxe.strata.gallery.pages;
 
 import org.inspirenxe.strata.api.ComponentFactory;
 import org.inspirenxe.strata.api.component.Component;
+import org.inspirenxe.strata.api.control.attribute.item.SingleSelection;
+import org.inspirenxe.strata.api.control.attribute.value.Ranged;
+import org.inspirenxe.strata.api.control.attribute.value.Toggle;
 import org.inspirenxe.strata.api.control.button.Button;
+import org.inspirenxe.strata.api.control.button.CheckBox;
+import org.inspirenxe.strata.api.control.collection.ComboBox;
 import org.inspirenxe.strata.api.control.display.Label;
+import org.inspirenxe.strata.api.control.field.Slider;
 import org.inspirenxe.strata.api.control.window.Window;
 import org.inspirenxe.strata.api.event.input.InputEvents;
 import org.inspirenxe.strata.api.layout.AbsolutePanel;
@@ -31,6 +37,8 @@ import org.inspirenxe.strata.api.layout.Orientation;
 import org.inspirenxe.strata.api.layout.ScrollPanel;
 import org.inspirenxe.strata.api.layout.StackPanel;
 import org.inspirenxe.strata.api.layout.VerticalAlignment;
+import org.inspirenxe.strata.api.layout.WrapPanel;
+import org.inspirenxe.strata.api.text.TextStyle;
 import org.inspirenxe.strata.api.theme.Border;
 import org.inspirenxe.strata.api.theme.Paint;
 import org.inspirenxe.strata.gallery.Page;
@@ -421,7 +429,35 @@ final class LayoutPages {
                                             .setPadding(4)
                                             .setBackground(SLOT)
                                             .setSize(170, 120)
-                                            .setScroll(0, 60))));
+                                            .setScroll(0, 60)),
+                                    Samples.example(ui, "With motion on, wheel steps, keys and scrollToVisible glide",
+                                            Samples.motion(ui, context))),
+                            Samples.note(ui, "Click the panel with both scroll bars, then scroll sideways with Left "
+                                    + "and Right or with Shift and the wheel; Up, Down, Page Up and Page Down scroll "
+                                    + "up and down. A panel that scrolls only one way leaves the other keys to "
+                                    + "whatever has focus."));
+                }),
+                new Page(SECTION, "Wrap panel", "Places its children in a line and starts a new line when the next one "
+                        + "would not fit, like words in a paragraph: chips that run onto another row as the window "
+                        + "narrows, or columns that fill one after another. Baseline alignment lines up the text of "
+                        + "children of different heights in a row.", """
+                        final WrapPanel chips = ui.wrapPanel().setSpacing(6, 6);
+                        for (final String fruit : List.of("Pears", "Apples", "Plums", "Quinces")) {
+                            chips.add(ui.button(fruit));
+                        }
+                        // Spread each line's spare room between its children
+                        chips.setLineAlignment(HorizontalAlignment.STRETCH);
+                        // Columns instead of rows: give the panel the height to fill before it starts another column
+                        final WrapPanel columns = ui.wrapPanel(Orientation.VERTICAL).setSize(200, 90);
+
+                        // Line up the text of a label, a box, a combo box, a button and a check box
+                        final StackPanel row = ui.stackPanel(Orientation.HORIZONTAL).setSpacing(6);
+                        for (final Component<?> child : List.of(label, box, combo, button, check)) {
+                            row.add(child.setAlignment(HorizontalAlignment.LEFT, VerticalAlignment.BASELINE));
+                        }
+                        """, context -> {
+                    final ComponentFactory ui = context.ui();
+                    return LayoutPages.wrapPanel(ui);
                 }),
                 new Page(SECTION, "Spacer", "An empty component. With a weight it pushes the components after it "
                         + "along; with a size it leaves a fixed gap.", """
@@ -567,5 +603,138 @@ final class LayoutPages {
             lines.add(ui.label("Line " + (i + 1)));
         }
         return lines;
+    }
+
+    /**
+     * The wrap panel page: chips that wrap with controls for the panel, a column variant, and baselines.
+     */
+    private static Component<?> wrapPanel(final ComponentFactory ui) {
+        final List<String> names = List.of("Pears", "Apples", "Plums", "Quinces", "Lemons", "Limes", "Figs", "Dates",
+                "Grapes", "Cherries", "Melons", "Peaches");
+        final WrapPanel chips = ui.wrapPanel().setSpacing(6, 6)
+                .setAlignment(HorizontalAlignment.STRETCH, VerticalAlignment.TOP);
+        for (final String name : names) {
+            chips.add(ui.button(name));
+        }
+        final StackPanel frame = ui.stackPanel()
+                .setBackground(FRAME)
+                .setBorder(OUTLINE)
+                .setPadding(6)
+                .add(chips)
+                .setWidth(330);
+        final Slider width = ui.slider()
+                .setRange(120, 640)
+                .setStep(10)
+                .setValue(330)
+                .setLabel(value -> "Width " + (int) value)
+                .onEvent(Ranged.CHANGED, event -> frame.setWidth(event.value().floatValue()));
+        width.setWidth(150);
+        final Slider spacing = ui.slider()
+                .setRange(0, 16)
+                .setStep(1)
+                .setValue(6)
+                .setLabel(value -> "Spacing " + (int) value);
+        final Slider lineSpacing = ui.slider()
+                .setRange(0, 16)
+                .setStep(1)
+                .setValue(6)
+                .setLabel(value -> "Line spacing " + (int) value);
+        spacing.setWidth(150);
+        lineSpacing.setWidth(150);
+        spacing.onEvent(Ranged.CHANGED, event -> chips.setSpacing(event.value().floatValue(), chips.lineSpacing()));
+        lineSpacing.onEvent(Ranged.CHANGED, event -> chips.setSpacing(chips.spacing(), event.value().floatValue()));
+        final ComboBox<HorizontalAlignment> alignment = ui.<HorizontalAlignment>comboBox()
+                .setItems(List.of(HorizontalAlignment.values()))
+                .select(0);
+        alignment.setWidth(110);
+        alignment.onEvent(SingleSelection.SELECTED, event -> alignment.selected().ifPresent(chips::setLineAlignment));
+
+        final WrapPanel columns = ui.wrapPanel(Orientation.VERTICAL).setSpacing(4, 6);
+        for (final String name : names) {
+            columns.add(ui.button(name));
+        }
+        final StackPanel columnFrame = ui.stackPanel()
+                .setBackground(FRAME)
+                .setBorder(OUTLINE)
+                .setPadding(6)
+                .add(columns.setSize(320, 110));
+        final Slider height = ui.slider()
+                .setRange(50, 200)
+                .setStep(10)
+                .setValue(110)
+                .setLabel(value -> "Height " + (int) value)
+                .onEvent(Ranged.CHANGED, event -> columns.setHeight(event.value().floatValue()));
+        height.setWidth(150);
+
+        return Samples.column(ui,
+                Samples.section(ui, "Rows that wrap",
+                        Samples.example(ui, "Narrow the frame, then change the spacing and the line alignment",
+                                ui.stackPanel().setSpacing(6)
+                                        .add(Samples.row(ui, width, spacing, lineSpacing, alignment).setSpacing(8))
+                                        .add(frame))),
+                Samples.section(ui, "Columns",
+                        Samples.example(ui, "A vertical wrap panel fills a column, then the next", ui.stackPanel()
+                                .setSpacing(6)
+                                .add(height)
+                                .add(columnFrame))),
+                Samples.section(ui, "Lining up text",
+                        Samples.example(ui, "A form row of a big label, a text box, a combo box, a button and a "
+                                + "check box: the same row with TOP or BASELINE alignment",
+                                LayoutPages.baselines(ui))));
+    }
+
+    /**
+     * A form row in a stack panel and in a grid row, and a check box that switches their children between TOP and
+     * BASELINE alignment.
+     */
+    private static Component<?> baselines(final ComponentFactory ui) {
+        final List<Component<?>> children = List.of(
+                ui.label("Price").setTextScale(1.5f),
+                ui.textBox().setText("12.50").setWidth(70).setTextPadding(6),
+                ui.<String>comboBox().setItems(List.of("per crate", "per kilo")).select(0).setWidth(90),
+                ui.button("Add").setTextPadding(10),
+                ui.checkBox("Tax"));
+        final List<Component<?>> gridChildren = List.of(
+                ui.label("Price").setTextScale(1.5f),
+                ui.textBox().setText("12.50").setWidth(70).setTextPadding(6),
+                ui.<String>comboBox().setItems(List.of("per crate", "per kilo")).select(0).setWidth(90),
+                ui.button("Add").setTextPadding(10),
+                ui.checkBox("Tax"));
+        final StackPanel row = ui.stackPanel(Orientation.HORIZONTAL)
+                .setSpacing(6)
+                .setBackground(FRAME)
+                .setBorder(OUTLINE)
+                .setPadding(4);
+        children.forEach(row::add);
+        final GridPanel grid = ui.gridPanel()
+                .rows(GridLength.auto())
+                .columns(GridLength.auto(), GridLength.auto(), GridLength.auto(), GridLength.auto(),
+                        GridLength.auto())
+                .setSpacing(6, 0)
+                .setBackground(FRAME)
+                .setBorder(OUTLINE)
+                .setPadding(4);
+        for (int i = 0; i < gridChildren.size(); i++) {
+            grid.add(gridChildren.get(i), 0, i);
+        }
+        final CheckBox baseline = ui.checkBox("Align on the baseline").setSelected(true);
+        final Runnable apply = () -> {
+            final VerticalAlignment alignment = baseline.isSelected() ? VerticalAlignment.BASELINE
+                    : VerticalAlignment.TOP;
+            for (final Component<?> child : children) {
+                child.setAlignment(HorizontalAlignment.LEFT, alignment);
+            }
+            for (final Component<?> child : gridChildren) {
+                child.setAlignment(HorizontalAlignment.LEFT, alignment);
+            }
+        };
+        apply.run();
+        baseline.onEvent(Toggle.TOGGLED, event -> apply.run());
+        return ui.stackPanel().setSpacing(6)
+                .add(baseline)
+                .add(ui.label("In a stack panel").setStyle(TextStyle.DEFAULT.withColor(Samples.MUTED)))
+                .add(row)
+                .add(ui.label("In a grid row").setStyle(TextStyle.DEFAULT.withColor(Samples.MUTED)))
+                .add(grid);
     }
 }
