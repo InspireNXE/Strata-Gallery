@@ -19,6 +19,8 @@ Building needs JDK 25. With Strata, Strata-Swing or Strata-Vulkan checked out be
 
 `runJava2d` opens the gallery in a Swing window, drawn with Java2D. `runVulkan` opens it in a GLFW window drawn with Vulkan, which needs a Vulkan driver. Both are `./gradlew run` with `--renderer java2d` or `--renderer vulkan`, and plain `run` uses Java2D. The window's title names the renderer. The two show the same pages with each adapter's own fonts and drawing, so they are a quick way to compare adapters.
 
+Both draw at most 30 frames a second; `--fps <rate>` sets another rate, such as `./gradlew runVulkan --args="--fps 60"`. The Vulkan window keeps its last frame and redraws only what changed.
+
 Without a display, render every page to a PNG with either renderer:
 
 ```bash

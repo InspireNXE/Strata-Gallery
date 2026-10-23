@@ -38,12 +38,13 @@ final class SwingGallery extends GalleryHost {
     private final SwitchableFont monospace;
     private final StrataPanel panel;
 
-    SwingGallery(final List<ThemeChoice> themes, final GalleryLook look) {
-        super(themes, look);
+    SwingGallery(final List<ThemeChoice> themes, final GalleryLook look, final int frameRate) {
+        super(themes, look, frameRate);
         this.text = new SwitchableFont(look.text().swing());
         this.monospace = new SwitchableFont(look.monospace().swing());
         final SwingPlatform platform = new SwingPlatform(new SwingTextMetrics(this.text, this.monospace));
         this.panel = new StrataPanel(platform, look.theme(), Gallery.SCALE, look.swingSprites());
+        this.panel.screens().setFrameRate(frameRate);
     }
 
     /**

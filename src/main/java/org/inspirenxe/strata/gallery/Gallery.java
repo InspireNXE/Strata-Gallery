@@ -19,6 +19,7 @@ import org.inspirenxe.strata.api.visual.PixelBuffer;
 import org.inspirenxe.strata.gallery.pages.Pages;
 import org.inspirenxe.strata.gallery.theme.GalleryLook;
 import org.inspirenxe.strata.gallery.theme.ThemeChoice;
+import org.inspirenxe.strata.spi.ScreenHost;
 import org.inspirenxe.strata.swing.SwingPlatform;
 import org.inspirenxe.strata.swing.SwingSnapshot;
 import org.inspirenxe.strata.vulkan.VulkanPlatform;
@@ -41,13 +42,16 @@ import javax.swing.SwingUtilities;
  * unless {@code --theme minecraft} or {@code --theme minecraft:<pack>} asks for Minecraft's look, read from the
  * Minecraft install on this computer. In a window, a selector beside the page title switches between the looks that
  * are available.</p>
+ *
+ * <p>{@code --fps <rate>} sets how many frames a second the window draws at most, 30 unless given.</p>
  */
 public final class Gallery {
     static final float SCALE = 1.5f;
     static final int WIDTH = 1400;
     static final int HEIGHT = 900;
     private static final String USAGE = "Usage: gallery [--renderer java2d|vulkan] "
-            + "[--theme flat|minecraft|minecraft:<pack>] [--snapshot <directory> [--size <width>x<height>]]";
+            + "[--theme flat|minecraft|minecraft:<pack>] [--fps <rate>] "
+            + "[--snapshot <directory> [--size <width>x<height>]]";
 
     private Gallery() {
     }
@@ -57,6 +61,8 @@ public final class Gallery {
         final String rendererId = Gallery.takeOption(rest, "--renderer");
         final String themeId = Gallery.takeOption(rest, "--theme");
         final String size = Gallery.takeOption(rest, "--size");
+        final String fps = Gallery.takeOption(rest, "--fps");
+        final int frameRate = fps == null ? ScreenHost.DEFAULT_FRAME_RATE : Gallery.parseFrameRate(fps);
         final Renderer renderer = rendererId == null ? Renderer.JAVA2D : Gallery.parse(rendererId);
         renderer.use();
         if (renderer == Renderer.VULKAN) {
@@ -78,9 +84,9 @@ public final class Gallery {
         final List<ThemeChoice> themes = ThemeChoice.available();
         final ThemeChoice theme = themeId == null ? ThemeChoice.FLAT : Gallery.choose(themeId, themes);
         if (renderer == Renderer.VULKAN) {
-            new VulkanGallery(themes, Gallery.load(theme)).run();
+            new VulkanGallery(themes, Gallery.load(theme), frameRate).run();
         } else {
-            SwingUtilities.invokeLater(() -> new SwingGallery(themes, Gallery.load(theme)).open());
+            SwingUtilities.invokeLater(() -> new SwingGallery(themes, Gallery.load(theme), frameRate).open());
         }
     }
 
@@ -109,6 +115,20 @@ public final class Gallery {
         final String value = args.remove(at + 1);
         args.remove(at);
         return value;
+    }
+
+    private static int parseFrameRate(final String value) {
+        try {
+            final int rate = Integer.parseInt(value);
+            if (rate >= ScreenHost.MIN_FRAME_RATE && rate <= ScreenHost.MAX_FRAME_RATE) {
+                return rate;
+            }
+        } catch (final NumberFormatException e) {
+            // Reported below
+        }
+        Gallery.fail("--fps takes a whole number from " + ScreenHost.MIN_FRAME_RATE + " to "
+                + ScreenHost.MAX_FRAME_RATE + ": " + value);
+        return ScreenHost.DEFAULT_FRAME_RATE;
     }
 
     private static Renderer parse(final String id) {

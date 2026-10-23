@@ -18,7 +18,9 @@ package org.inspirenxe.strata.gallery;
 import org.inspirenxe.strata.gallery.theme.GalleryLook;
 import org.inspirenxe.strata.gallery.theme.ThemeChoice;
 import org.inspirenxe.strata.spi.ScreenStack;
+import org.inspirenxe.strata.vulkan.PixelRect;
 import org.inspirenxe.strata.vulkan.StrataVulkan;
+import org.inspirenxe.strata.vulkan.VulkanFrame;
 import org.inspirenxe.strata.vulkan.VulkanPlatform;
 import org.inspirenxe.strata.vulkan.VulkanRenderer;
 import org.inspirenxe.strata.vulkan.VulkanTarget;
@@ -30,7 +32,8 @@ import org.lwjgl.vulkan.KHRDynamicRendering;
 import org.lwjgl.vulkan.VK;
 import org.lwjgl.vulkan.VK13;
 import org.lwjgl.vulkan.VkApplicationInfo;
-import org.lwjgl.vulkan.VkClearValue;
+import org.lwjgl.vulkan.VkClearAttachment;
+import org.lwjgl.vulkan.VkClearRect;
 import org.lwjgl.vulkan.VkCommandBuffer;
 import org.lwjgl.vulkan.VkCommandBufferAllocateInfo;
 import org.lwjgl.vulkan.VkCommandBufferBeginInfo;
@@ -40,16 +43,24 @@ import org.lwjgl.vulkan.VkDeviceCreateInfo;
 import org.lwjgl.vulkan.VkDeviceQueueCreateInfo;
 import org.lwjgl.vulkan.VkExtensionProperties;
 import org.lwjgl.vulkan.VkFenceCreateInfo;
+import org.lwjgl.vulkan.VkImageCopy;
+import org.lwjgl.vulkan.VkImageCreateInfo;
 import org.lwjgl.vulkan.VkImageMemoryBarrier;
 import org.lwjgl.vulkan.VkImageViewCreateInfo;
 import org.lwjgl.vulkan.VkInstance;
 import org.lwjgl.vulkan.VkInstanceCreateInfo;
+import org.lwjgl.vulkan.VkMemoryAllocateInfo;
+import org.lwjgl.vulkan.VkMemoryRequirements;
 import org.lwjgl.vulkan.VkPhysicalDevice;
 import org.lwjgl.vulkan.VkPhysicalDeviceDynamicRenderingFeatures;
+import org.lwjgl.vulkan.VkPhysicalDeviceMemoryProperties;
 import org.lwjgl.vulkan.VkPhysicalDeviceProperties;
 import org.lwjgl.vulkan.VkPresentInfoKHR;
+import org.lwjgl.vulkan.VkPresentRegionKHR;
+import org.lwjgl.vulkan.VkPresentRegionsKHR;
 import org.lwjgl.vulkan.VkQueue;
 import org.lwjgl.vulkan.VkQueueFamilyProperties;
+import org.lwjgl.vulkan.VkRectLayerKHR;
 import org.lwjgl.vulkan.VkRenderingAttachmentInfo;
 import org.lwjgl.vulkan.VkRenderingInfo;
 import org.lwjgl.vulkan.VkSemaphoreCreateInfo;
@@ -104,9 +115,14 @@ import static org.lwjgl.vulkan.KHRSwapchain.vkCreateSwapchainKHR;
 import static org.lwjgl.vulkan.KHRSwapchain.vkDestroySwapchainKHR;
 import static org.lwjgl.vulkan.KHRSwapchain.vkGetSwapchainImagesKHR;
 import static org.lwjgl.vulkan.KHRSwapchain.vkQueuePresentKHR;
+import static org.lwjgl.vulkan.VK10.VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
 import static org.lwjgl.vulkan.KHRDynamicRendering.VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME;
+import static org.lwjgl.vulkan.KHRIncrementalPresent.VK_KHR_INCREMENTAL_PRESENT_EXTENSION_NAME;
+import static org.lwjgl.vulkan.KHRIncrementalPresent.VK_STRUCTURE_TYPE_PRESENT_REGIONS_KHR;
 import static org.lwjgl.vulkan.VK10.VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-import static org.lwjgl.vulkan.VK10.VK_ATTACHMENT_LOAD_OP_CLEAR;
+import static org.lwjgl.vulkan.VK10.VK_ACCESS_TRANSFER_READ_BIT;
+import static org.lwjgl.vulkan.VK10.VK_ACCESS_TRANSFER_WRITE_BIT;
+import static org.lwjgl.vulkan.VK10.VK_ATTACHMENT_LOAD_OP_LOAD;
 import static org.lwjgl.vulkan.VK10.VK_ATTACHMENT_STORE_OP_STORE;
 import static org.lwjgl.vulkan.VK10.VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 import static org.lwjgl.vulkan.VK10.VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
@@ -116,14 +132,23 @@ import static org.lwjgl.vulkan.VK10.VK_FORMAT_B8G8R8A8_UNORM;
 import static org.lwjgl.vulkan.VK10.VK_FORMAT_R8G8B8A8_UNORM;
 import static org.lwjgl.vulkan.VK10.VK_IMAGE_ASPECT_COLOR_BIT;
 import static org.lwjgl.vulkan.VK10.VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+import static org.lwjgl.vulkan.VK10.VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+import static org.lwjgl.vulkan.VK10.VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
 import static org.lwjgl.vulkan.VK10.VK_IMAGE_LAYOUT_UNDEFINED;
+import static org.lwjgl.vulkan.VK10.VK_IMAGE_TILING_OPTIMAL;
+import static org.lwjgl.vulkan.VK10.VK_IMAGE_TYPE_2D;
 import static org.lwjgl.vulkan.VK10.VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+import static org.lwjgl.vulkan.VK10.VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+import static org.lwjgl.vulkan.VK10.VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 import static org.lwjgl.vulkan.VK10.VK_IMAGE_VIEW_TYPE_2D;
+import static org.lwjgl.vulkan.VK10.VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 import static org.lwjgl.vulkan.VK10.VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU;
 import static org.lwjgl.vulkan.VK10.VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
 import static org.lwjgl.vulkan.VK10.VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+import static org.lwjgl.vulkan.VK10.VK_PIPELINE_STAGE_TRANSFER_BIT;
 import static org.lwjgl.vulkan.VK10.VK_QUEUE_FAMILY_IGNORED;
 import static org.lwjgl.vulkan.VK10.VK_QUEUE_GRAPHICS_BIT;
+import static org.lwjgl.vulkan.VK10.VK_SAMPLE_COUNT_1_BIT;
 import static org.lwjgl.vulkan.VK10.VK_SHARING_MODE_EXCLUSIVE;
 import static org.lwjgl.vulkan.VK10.VK_STRUCTURE_TYPE_APPLICATION_INFO;
 import static org.lwjgl.vulkan.VK10.VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -132,24 +157,32 @@ import static org.lwjgl.vulkan.VK10.VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 import static org.lwjgl.vulkan.VK10.VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 import static org.lwjgl.vulkan.VK10.VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
 import static org.lwjgl.vulkan.VK10.VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+import static org.lwjgl.vulkan.VK10.VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 import static org.lwjgl.vulkan.VK10.VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 import static org.lwjgl.vulkan.VK10.VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 import static org.lwjgl.vulkan.VK10.VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+import static org.lwjgl.vulkan.VK10.VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 import static org.lwjgl.vulkan.VK10.VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 import static org.lwjgl.vulkan.VK10.VK_STRUCTURE_TYPE_SUBMIT_INFO;
 import static org.lwjgl.vulkan.VK10.VK_SUCCESS;
 import static org.lwjgl.vulkan.VK10.vkAllocateCommandBuffers;
+import static org.lwjgl.vulkan.VK10.vkAllocateMemory;
 import static org.lwjgl.vulkan.VK10.vkBeginCommandBuffer;
+import static org.lwjgl.vulkan.VK10.vkBindImageMemory;
+import static org.lwjgl.vulkan.VK10.vkCmdClearAttachments;
+import static org.lwjgl.vulkan.VK10.vkCmdCopyImage;
 import static org.lwjgl.vulkan.VK10.vkCmdPipelineBarrier;
 import static org.lwjgl.vulkan.VK10.vkCreateCommandPool;
 import static org.lwjgl.vulkan.VK10.vkCreateDevice;
 import static org.lwjgl.vulkan.VK10.vkCreateFence;
+import static org.lwjgl.vulkan.VK10.vkCreateImage;
 import static org.lwjgl.vulkan.VK10.vkCreateImageView;
 import static org.lwjgl.vulkan.VK10.vkCreateInstance;
 import static org.lwjgl.vulkan.VK10.vkCreateSemaphore;
 import static org.lwjgl.vulkan.VK10.vkDestroyCommandPool;
 import static org.lwjgl.vulkan.VK10.vkDestroyDevice;
 import static org.lwjgl.vulkan.VK10.vkDestroyFence;
+import static org.lwjgl.vulkan.VK10.vkDestroyImage;
 import static org.lwjgl.vulkan.VK10.vkDestroyImageView;
 import static org.lwjgl.vulkan.VK10.vkDestroyInstance;
 import static org.lwjgl.vulkan.VK10.vkDestroySemaphore;
@@ -157,7 +190,10 @@ import static org.lwjgl.vulkan.VK10.vkDeviceWaitIdle;
 import static org.lwjgl.vulkan.VK10.vkEndCommandBuffer;
 import static org.lwjgl.vulkan.VK10.vkEnumerateDeviceExtensionProperties;
 import static org.lwjgl.vulkan.VK10.vkEnumeratePhysicalDevices;
+import static org.lwjgl.vulkan.VK10.vkFreeMemory;
 import static org.lwjgl.vulkan.VK10.vkGetDeviceQueue;
+import static org.lwjgl.vulkan.VK10.vkGetImageMemoryRequirements;
+import static org.lwjgl.vulkan.VK10.vkGetPhysicalDeviceMemoryProperties;
 import static org.lwjgl.vulkan.VK10.vkGetPhysicalDeviceProperties;
 import static org.lwjgl.vulkan.VK10.vkGetPhysicalDeviceQueueFamilyProperties;
 import static org.lwjgl.vulkan.VK10.vkQueueSubmit;
@@ -172,9 +208,12 @@ import static org.lwjgl.vulkan.VK13.VK_STRUCTURE_TYPE_RENDERING_INFO;
 
 /**
  * The gallery in a GLFW window, drawn with Vulkan: the host a Vulkan application gives Strata, written out in full.
- * It makes an instance, a surface, a device and a swapchain, records each frame with dynamic rendering, clears it to
- * the Swing panel's background and lets the Strata view draw over it. Frames are drawn when the screens need one or
- * a timed change is due, and the window otherwise waits for events.
+ * It makes an instance, a surface, a device and a swapchain, and keeps an image of the last frame. Each frame the
+ * Strata view prepares tells what changed; the host clears those rectangles to the Swing panel's background, lets the
+ * view draw over them with dynamic rendering, copies the kept image to the swapchain image and presents it, naming the
+ * changed rectangles when the device has {@code VK_KHR_incremental_present}. A frame where nothing changed is not
+ * presented. Frames are drawn when the screens need one or a timed change is due, never sooner than the frame rate
+ * allows, and the window otherwise waits for events.
  *
  * <p>Changing look makes a new view, with a platform of the new look's fonts, on the same renderer.</p>
  */
@@ -207,13 +246,18 @@ final class VulkanGallery extends GalleryHost {
     private long[] inFlight;
     private int frame;
     private boolean stale;
+    private boolean incremental;
+    private long kept;
+    private long keptMemory;
+    private long keptView;
+    private boolean keptLoaded;
     private VulkanRenderer renderer;
     private StrataVulkan strata;
     private StrataGlfw glfw;
     private float zoom;
 
-    VulkanGallery(final List<ThemeChoice> themes, final GalleryLook look) {
-        super(themes, look);
+    VulkanGallery(final List<ThemeChoice> themes, final GalleryLook look, final int frameRate) {
+        super(themes, look, frameRate);
         this.tasks = new ConcurrentLinkedQueue<>();
         this.thread = Thread.currentThread();
         this.zoom = Gallery.SCALE;
@@ -283,6 +327,7 @@ final class VulkanGallery extends GalleryHost {
                 .uiThreadCheck(() -> Thread.currentThread() == this.thread)
                 .build();
         this.strata = new StrataVulkan(platform, this.renderer, look.theme(), 1f, look.vulkanSprites());
+        this.strata.screens().setFrameRate(this.frameRate);
         // Strata.screens() opens on this view. The gallery pushes its own screens, so they follow theme changes
         this.strata.setDefault();
         // Any thread may ask for a frame; an empty event wakes the loop
@@ -294,24 +339,33 @@ final class VulkanGallery extends GalleryHost {
 
     private void loop() {
         long next = 0L;
+        long last = Long.MIN_VALUE / 2;
         while (!glfwWindowShouldClose(this.window)) {
             Runnable task;
             while ((task = this.tasks.poll()) != null) {
                 task.run();
             }
-            final long now = System.nanoTime();
             if (this.stale || this.resized()) {
                 this.recreateSwapchain();
             }
-            if ((this.strata.screens().needsFrame() || now >= next) && this.width > 0 && this.height > 0) {
+            final ScreenStack screens = this.strata.screens();
+            final long interval = screens.frameIntervalNanos();
+            final long now = System.nanoTime();
+            // A needed frame waits until one interval has passed since the last one began
+            final boolean due = screens.needsFrame() && now >= last + interval || now >= next;
+            if (due && this.width > 0 && this.height > 0) {
+                last = now;
                 this.drawFrame();
-                next = this.strata.screens().nextFrameNanos();
+                next = screens.nextFrameNanos();
             }
-            if (this.strata.screens().needsFrame() || !this.tasks.isEmpty() || this.stale) {
+            long wake = next == Long.MAX_VALUE ? System.nanoTime() + IDLE_NANOS : next;
+            if (screens.needsFrame()) {
+                wake = Math.min(wake, last + interval);
+            }
+            final long wait = Math.min(IDLE_NANOS, wake - System.nanoTime());
+            if (wait <= 0L || !this.tasks.isEmpty() || this.stale) {
                 glfwPollEvents();
             } else {
-                final long wait = next == Long.MAX_VALUE ? IDLE_NANOS
-                        : Math.max(0L, Math.min(IDLE_NANOS, next - System.nanoTime()));
                 glfwWaitEventsTimeout(wait / 1e9);
             }
         }
@@ -330,6 +384,11 @@ final class VulkanGallery extends GalleryHost {
     }
 
     private void drawFrame() {
+        final VulkanFrame prepared = this.strata.prepare();
+        if (prepared.isEmpty()) {
+            // Nothing changed, so the window keeps what it shows
+            return;
+        }
         try (MemoryStack stack = MemoryStack.stackPush()) {
             final long fence = this.inFlight[this.frame];
             check(vkWaitForFences(this.device, stack.longs(fence), true, Long.MAX_VALUE), "wait for a frame");
@@ -337,6 +396,7 @@ final class VulkanGallery extends GalleryHost {
             final int acquired = vkAcquireNextImageKHR(this.device, this.swapchain, Long.MAX_VALUE,
                     this.imageAvailable[this.frame], 0L, index);
             if (acquired == VK_ERROR_OUT_OF_DATE_KHR) {
+                // The prepared frame is lost with the swapchain; the next one is drawn whole
                 this.stale = true;
                 return;
             }
@@ -350,45 +410,62 @@ final class VulkanGallery extends GalleryHost {
             check(vkBeginCommandBuffer(commands, VkCommandBufferBeginInfo.calloc(stack)
                     .sType(VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO)
                     .flags(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT)), "begin a frame");
-            this.barrier(commands, stack, this.images[image], VK_IMAGE_LAYOUT_UNDEFINED,
-                    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, 0, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-                    VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
-            final VkClearValue clear = VkClearValue.calloc(stack);
-            clear.color().float32(0, ((BACKGROUND >> 16) & 0xFF) / 255f).float32(1, ((BACKGROUND >> 8) & 0xFF) / 255f)
-                    .float32(2, (BACKGROUND & 0xFF) / 255f).float32(3, 1f);
+            // The kept image holds the last frame, unless it is new; the first frame damages all of it
+            this.barrier(commands, stack, this.kept,
+                    this.keptLoaded ? VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED,
+                    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_TRANSFER_READ_BIT,
+                    VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                    VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
             final VkRenderingAttachmentInfo.Buffer color = VkRenderingAttachmentInfo.calloc(1, stack)
                     .sType(VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO)
-                    .imageView(this.views[image])
+                    .imageView(this.keptView)
                     .imageLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
-                    .loadOp(VK_ATTACHMENT_LOAD_OP_CLEAR)
-                    .storeOp(VK_ATTACHMENT_STORE_OP_STORE)
-                    .clearValue(clear);
+                    .loadOp(VK_ATTACHMENT_LOAD_OP_LOAD)
+                    .storeOp(VK_ATTACHMENT_STORE_OP_STORE);
+            final PixelRect area = prepared.bounds();
             final VkRenderingInfo rendering = VkRenderingInfo.calloc(stack)
                     .sType(VK_STRUCTURE_TYPE_RENDERING_INFO)
                     .layerCount(1)
                     .pColorAttachments(color);
-            rendering.renderArea().extent().set(this.width, this.height);
+            rendering.renderArea().offset().set(area.x(), area.y());
+            rendering.renderArea().extent().set(area.width(), area.height());
             if (this.core13) {
                 VK13.vkCmdBeginRendering(commands, rendering);
             } else {
                 KHRDynamicRendering.vkCmdBeginRenderingKHR(commands, rendering);
             }
-            this.strata.render(commands);
+            this.clearDamage(commands, stack, prepared.damage());
+            prepared.record(commands);
             if (this.core13) {
                 VK13.vkCmdEndRendering(commands);
             } else {
                 KHRDynamicRendering.vkCmdEndRenderingKHR(commands);
             }
-            this.barrier(commands, stack, this.images[image], VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                    VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, 0,
-                    VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
+            this.barrier(commands, stack, this.kept, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                    VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                    VK_ACCESS_TRANSFER_READ_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                    VK_PIPELINE_STAGE_TRANSFER_BIT);
+            // Vulkan does not promise a swapchain image keeps its pixels between presents, so all of the kept image is copied
+            this.barrier(commands, stack, this.images[image], VK_IMAGE_LAYOUT_UNDEFINED,
+                    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0, VK_ACCESS_TRANSFER_WRITE_BIT,
+                    VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+            final VkImageCopy.Buffer copy = VkImageCopy.calloc(1, stack);
+            copy.srcSubresource().aspectMask(VK_IMAGE_ASPECT_COLOR_BIT).layerCount(1);
+            copy.dstSubresource().aspectMask(VK_IMAGE_ASPECT_COLOR_BIT).layerCount(1);
+            copy.extent().set(this.width, this.height, 1);
+            vkCmdCopyImage(commands, this.kept, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, this.images[image],
+                    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, copy);
+            this.barrier(commands, stack, this.images[image], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                    VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_ACCESS_TRANSFER_WRITE_BIT, 0,
+                    VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
             check(vkEndCommandBuffer(commands), "end a frame");
+            this.keptLoaded = true;
 
             final VkSubmitInfo submit = VkSubmitInfo.calloc(stack)
                     .sType(VK_STRUCTURE_TYPE_SUBMIT_INFO)
                     .waitSemaphoreCount(1)
                     .pWaitSemaphores(stack.longs(this.imageAvailable[this.frame]))
-                    .pWaitDstStageMask(stack.ints(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT))
+                    .pWaitDstStageMask(stack.ints(VK_PIPELINE_STAGE_TRANSFER_BIT))
                     .pCommandBuffers(stack.pointers(commands))
                     .pSignalSemaphores(stack.longs(this.renderFinished[image]));
             check(vkQueueSubmit(this.queue, submit, fence), "submit a frame");
@@ -398,6 +475,25 @@ final class VulkanGallery extends GalleryHost {
                     .swapchainCount(1)
                     .pSwapchains(stack.longs(this.swapchain))
                     .pImageIndices(stack.ints(image));
+            if (this.incremental) {
+                // Only the damage changed, so the compositor need not look at the rest
+                final List<PixelRect> damage = prepared.damage();
+                final VkRectLayerKHR.Buffer rects = VkRectLayerKHR.calloc(damage.size(), stack);
+                for (int i = 0; i < damage.size(); i++) {
+                    final PixelRect rect = damage.get(i);
+                    rects.get(i).offset().set(rect.x(), rect.y());
+                    rects.get(i).extent().set(rect.width(), rect.height());
+                    rects.get(i).layer(0);
+                }
+                final VkPresentRegionKHR.Buffer regions = VkPresentRegionKHR.calloc(1, stack)
+                        .rectangleCount(damage.size())
+                        .pRectangles(rects);
+                present.pNext(VkPresentRegionsKHR.calloc(stack)
+                        .sType(VK_STRUCTURE_TYPE_PRESENT_REGIONS_KHR)
+                        .swapchainCount(1)
+                        .pRegions(regions)
+                        .address());
+            }
             final int presented = vkQueuePresentKHR(this.queue, present);
             if (presented == VK_ERROR_OUT_OF_DATE_KHR || presented == VK_SUBOPTIMAL_KHR) {
                 this.stale = true;
@@ -405,6 +501,86 @@ final class VulkanGallery extends GalleryHost {
                 check(presented, "present a frame");
             }
             this.frame = (this.frame + 1) % FRAMES_IN_FLIGHT;
+        }
+    }
+
+    /**
+     * Clears the damage rectangles of the kept image to the background, so the view draws them as on a new image.
+     */
+    private void clearDamage(final VkCommandBuffer commands, final MemoryStack stack, final List<PixelRect> damage) {
+        final VkClearAttachment.Buffer attachment = VkClearAttachment.calloc(1, stack)
+                .aspectMask(VK_IMAGE_ASPECT_COLOR_BIT)
+                .colorAttachment(0);
+        attachment.clearValue().color().float32(0, ((BACKGROUND >> 16) & 0xFF) / 255f)
+                .float32(1, ((BACKGROUND >> 8) & 0xFF) / 255f).float32(2, (BACKGROUND & 0xFF) / 255f).float32(3, 1f);
+        final VkClearRect.Buffer rects = VkClearRect.calloc(damage.size(), stack);
+        for (int i = 0; i < damage.size(); i++) {
+            final PixelRect rect = damage.get(i);
+            rects.get(i).baseArrayLayer(0).layerCount(1);
+            rects.get(i).rect().offset().set(rect.x(), rect.y());
+            rects.get(i).rect().extent().set(rect.width(), rect.height());
+        }
+        vkCmdClearAttachments(commands, attachment, rects);
+    }
+
+    /**
+     * Makes the image that keeps the last frame, the size and format of the swapchain's images.
+     */
+    private void createKept() {
+        try (MemoryStack stack = MemoryStack.stackPush()) {
+            final VkImageCreateInfo info = VkImageCreateInfo.calloc(stack)
+                    .sType(VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO)
+                    .imageType(VK_IMAGE_TYPE_2D)
+                    .format(this.format)
+                    .mipLevels(1)
+                    .arrayLayers(1)
+                    .samples(VK_SAMPLE_COUNT_1_BIT)
+                    .tiling(VK_IMAGE_TILING_OPTIMAL)
+                    .usage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
+                    .sharingMode(VK_SHARING_MODE_EXCLUSIVE)
+                    .initialLayout(VK_IMAGE_LAYOUT_UNDEFINED);
+            info.extent().set(this.width, this.height, 1);
+            final LongBuffer handle = stack.mallocLong(1);
+            check(vkCreateImage(this.device, info, null, handle), "create the kept image");
+            this.kept = handle.get(0);
+            final VkMemoryRequirements requirements = VkMemoryRequirements.malloc(stack);
+            vkGetImageMemoryRequirements(this.device, this.kept, requirements);
+            final VkPhysicalDeviceMemoryProperties memory = VkPhysicalDeviceMemoryProperties.malloc(stack);
+            vkGetPhysicalDeviceMemoryProperties(this.device.getPhysicalDevice(), memory);
+            int type = -1;
+            for (int i = 0; i < memory.memoryTypeCount() && type < 0; i++) {
+                if ((requirements.memoryTypeBits() & (1 << i)) != 0
+                        && (memory.memoryTypes(i).propertyFlags() & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) != 0) {
+                    type = i;
+                }
+            }
+            if (type < 0) {
+                throw new IllegalStateException("No device memory holds the kept image");
+            }
+            check(vkAllocateMemory(this.device, VkMemoryAllocateInfo.calloc(stack)
+                    .sType(VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO)
+                    .allocationSize(requirements.size())
+                    .memoryTypeIndex(type), null, handle), "allocate the kept image");
+            this.keptMemory = handle.get(0);
+            check(vkBindImageMemory(this.device, this.kept, this.keptMemory, 0L), "bind the kept image");
+            final VkImageViewCreateInfo view = VkImageViewCreateInfo.calloc(stack)
+                    .sType(VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO)
+                    .image(this.kept)
+                    .viewType(VK_IMAGE_VIEW_TYPE_2D)
+                    .format(this.format);
+            view.subresourceRange().aspectMask(VK_IMAGE_ASPECT_COLOR_BIT).levelCount(1).layerCount(1);
+            check(vkCreateImageView(this.device, view, null, handle), "create the kept image's view");
+            this.keptView = handle.get(0);
+            this.keptLoaded = false;
+        }
+    }
+
+    private void destroyKept() {
+        if (this.kept != 0L) {
+            vkDestroyImageView(this.device, this.keptView, null);
+            vkDestroyImage(this.device, this.kept, null);
+            vkFreeMemory(this.device, this.keptMemory, null);
+            this.kept = 0L;
         }
     }
 
@@ -485,6 +661,7 @@ final class VulkanGallery extends GalleryHost {
             final VkPhysicalDeviceProperties properties = VkPhysicalDeviceProperties.malloc(stack);
             vkGetPhysicalDeviceProperties(chosen, properties);
             System.out.println("Vulkan: " + properties.deviceNameString());
+            this.incremental = VulkanGallery.hasExtension(stack, chosen, VK_KHR_INCREMENTAL_PRESENT_EXTENSION_NAME);
             final int version = Math.min(properties.apiVersion(), app.apiVersion());
             this.core13 = version >= VK_API_VERSION_1_3;
             final VkPhysicalDeviceDynamicRenderingFeatures features = VkPhysicalDeviceDynamicRenderingFeatures
@@ -498,10 +675,7 @@ final class VulkanGallery extends GalleryHost {
                             .sType(VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO)
                             .queueFamilyIndex(this.queueFamily)
                             .pQueuePriorities(stack.floats(1f)))
-                    .ppEnabledExtensionNames(this.core13
-                            ? stack.pointers(stack.UTF8(VK_KHR_SWAPCHAIN_EXTENSION_NAME))
-                            : stack.pointers(stack.UTF8(VK_KHR_SWAPCHAIN_EXTENSION_NAME),
-                            stack.UTF8(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME)));
+                    .ppEnabledExtensionNames(this.deviceExtensions(stack));
             final PointerBuffer deviceHandle = stack.mallocPointer(1);
             check(vkCreateDevice(chosen, deviceInfo, null, deviceHandle), "create a device");
             this.device = new VkDevice(deviceHandle.get(0), chosen, deviceInfo, version);
@@ -510,6 +684,18 @@ final class VulkanGallery extends GalleryHost {
             this.queue = new VkQueue(queue.get(0), this.device);
             this.format = this.chooseFormat(stack, chosen);
         }
+    }
+
+    private PointerBuffer deviceExtensions(final MemoryStack stack) {
+        final PointerBuffer names = stack.mallocPointer(3);
+        names.put(stack.UTF8(VK_KHR_SWAPCHAIN_EXTENSION_NAME));
+        if (!this.core13) {
+            names.put(stack.UTF8(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME));
+        }
+        if (this.incremental) {
+            names.put(stack.UTF8(VK_KHR_INCREMENTAL_PRESENT_EXTENSION_NAME));
+        }
+        return names.flip();
     }
 
     private int presentingFamily(final MemoryStack stack, final VkPhysicalDevice device) {
@@ -580,7 +766,7 @@ final class VulkanGallery extends GalleryHost {
                     .imageFormat(this.format)
                     .imageColorSpace(VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
                     .imageArrayLayers(1)
-                    .imageUsage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
+                    .imageUsage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT)
                     .imageSharingMode(VK_SHARING_MODE_EXCLUSIVE)
                     .preTransform(capabilities.currentTransform())
                     .compositeAlpha(VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR)
@@ -611,8 +797,11 @@ final class VulkanGallery extends GalleryHost {
                 this.renderFinished[i] = this.semaphore(stack);
             }
         }
+        this.createKept();
         if (this.strata != null) {
             this.strata.setBounds(0, 0, this.width, this.height);
+            // The kept image is new
+            this.strata.invalidate();
         }
     }
 
@@ -676,6 +865,7 @@ final class VulkanGallery extends GalleryHost {
     }
 
     private void destroySwapchain() {
+        this.destroyKept();
         for (int i = 0; i < this.views.length; i++) {
             vkDestroyImageView(this.device, this.views[i], null);
             vkDestroySemaphore(this.device, this.renderFinished[i], null);

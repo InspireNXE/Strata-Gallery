@@ -51,13 +51,16 @@ abstract class GalleryHost {
     protected final List<ThemeChoice> themes;
     protected final List<Page> pages;
     protected GalleryLook look;
+    /** How many frames a second the window draws at most. */
+    protected final int frameRate;
     private boolean motion;
     private Map<String, Float> metrics = Map.of();
 
-    GalleryHost(final List<ThemeChoice> themes, final GalleryLook look) {
+    GalleryHost(final List<ThemeChoice> themes, final GalleryLook look, final int frameRate) {
         this.themes = themes;
         this.pages = Pages.all();
         this.look = look;
+        this.frameRate = frameRate;
     }
 
     /**
