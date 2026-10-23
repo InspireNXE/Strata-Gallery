@@ -2,11 +2,11 @@ plugins {
     id 'application'
 }
 
-description = 'A gallery of every Strata control, running on the Java2D adapter.'
+description = 'A gallery of every Strata control, running on the Java2D or the Vulkan adapter.'
 
 repositories {
     mavenCentral()
-    // Strata's snapshots, when Strata and Strata-Swing are not checked out beside the gallery
+    // Strata's snapshots, when Strata and its adapters are not checked out beside the gallery
     maven {
         name = 'CentralSnapshots'
         url = uri('https://central.sonatype.com/repository/maven-snapshots/')
@@ -31,10 +31,21 @@ tasks.withType(JavaCompile).configureEach {
     options.compilerArgs.addAll(['-Xlint:all', '-Xlint:-serial', '-Xlint:-processing', '-Xlint:-classfile'])
 }
 
+// The platforms whose natives the gallery's jar carries for the Vulkan window
+def nativePlatforms = ['windows', 'windows-arm64', 'linux', 'linux-arm64', 'macos', 'macos-arm64']
+
 dependencies {
-    // Pages are written against the API only; the Java2D adapter shows them
+    // Pages are written against the API only; the adapter chosen with --renderer shows them
     implementation("org.inspirenxe:strata-api:${strata_version}")
     implementation("org.inspirenxe:strata-swing:${strata_version}")
+    implementation("org.inspirenxe:strata-vulkan:${strata_version}")
+    // The Vulkan gallery's window, and MoltenVK, which is how Vulkan runs on macOS
+    implementation('org.lwjgl:lwjgl-glfw')
+    nativePlatforms.each { natives ->
+        runtimeOnly("org.lwjgl:lwjgl-glfw::natives-${natives}")
+    }
+    runtimeOnly('org.lwjgl:lwjgl-vulkan::natives-macos')
+    runtimeOnly('org.lwjgl:lwjgl-vulkan::natives-macos-arm64')
 
     testImplementation(platform("org.junit:junit-bom:${junit_version}"))
     testImplementation('org.junit.jupiter:junit-jupiter')
@@ -44,10 +55,38 @@ dependencies {
 tasks.named('test') {
     useJUnitPlatform()
     systemProperty('java.awt.headless', 'true')
+    jvmArgs('--enable-native-access=ALL-UNNAMED')
 }
 
 application {
     mainClass = 'org.inspirenxe.strata.gallery.Gallery'
+    // LWJGL calls native code
+    applicationDefaultJvmArgs = ['--enable-native-access=ALL-UNNAMED']
+}
+
+// GLFW must run on the process's first thread on macOS
+def macOs = System.getProperty('os.name', '').toLowerCase(Locale.ROOT).startsWith('mac')
+
+tasks.named('run', JavaExec) {
+    if (macOs) {
+        jvmArgs('-XstartOnFirstThread')
+    }
+}
+
+// runJava2d and runVulkan open the gallery with one renderer each; --args adds more, such as --theme minecraft
+[java2d: ['runJava2d', 'Java2D'], vulkan: ['runVulkan', 'Vulkan']].each { id, task ->
+    def (taskName, name) = task
+    tasks.register(taskName, JavaExec) {
+        description = "Opens the gallery drawn with ${name}."
+        group = 'application'
+        classpath = sourceSets.main.runtimeClasspath
+        mainClass = application.mainClass
+        jvmArgs('--enable-native-access=ALL-UNNAMED')
+        if (macOs) {
+            jvmArgs('-XstartOnFirstThread')
+        }
+        argumentProviders.add({ ['--renderer', id] } as CommandLineArgumentProvider)
+    }
 }
 
 // One jar with everything the gallery needs, so java -jar runs it

@@ -19,11 +19,9 @@ import org.inspirenxe.strata.api.control.window.MessageBox;
 import org.inspirenxe.strata.api.theme.Paint;
 import org.inspirenxe.strata.api.theme.Theme;
 import org.inspirenxe.strata.api.theme.Themes;
-import org.inspirenxe.strata.swing.AwtFont;
-import org.inspirenxe.strata.swing.SwingFont;
-import org.inspirenxe.strata.swing.SwingSprites;
+import org.inspirenxe.strata.swing.SpriteResolver;
+import org.inspirenxe.strata.swing.SpriteSource;
 
-import java.awt.Font;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -97,16 +95,16 @@ public record ThemeChoice(String id, String label, MinecraftInstall install, Min
      * @throws IOException if the jar or pack cannot be read
      */
     public GalleryLook load() throws IOException {
-        final SwingFont dialog = new AwtFont(new Font(Font.DIALOG, Font.PLAIN, 9));
         if (this.install == null) {
-            return new GalleryLook(this, ThemeChoice.flat(), new SwingSprites(ThemeChoice.class.getClassLoader()),
-                    Chrome.FLAT, dialog, new AwtFont(new Font(Font.MONOSPACED, Font.PLAIN, 9)), List.of(), () -> { });
+            return new GalleryLook(this, ThemeChoice.flat(),
+                    SpriteSource.classPath(ThemeChoice.class.getClassLoader(), SpriteResolver.DEFAULT), Chrome.FLAT,
+                    GalleryFont.system(false), GalleryFont.system(true), List.of(), () -> { });
         }
         final MinecraftAssets assets = MinecraftAssets.open(this.install, Optional.ofNullable(this.pack));
         final MinecraftLook.Result result = MinecraftLook.build(assets);
         final Set<String> notes = new LinkedHashSet<>(result.notes());
-        final SwingFont font = MinecraftFont.load(assets, notes).<SwingFont>map(bitmap -> bitmap).orElse(dialog);
-        return new GalleryLook(this, ThemeChoice.withCard(result.theme()), new SwingSprites(assets), result.chrome(), font, font,
+        final GalleryFont font = MinecraftFont.load(assets, notes).orElseGet(() -> GalleryFont.system(false));
+        return new GalleryLook(this, ThemeChoice.withCard(result.theme()), assets, result.chrome(), font, font,
                 List.copyOf(notes), assets);
     }
 

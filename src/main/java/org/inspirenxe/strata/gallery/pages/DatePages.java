@@ -32,7 +32,7 @@ import org.inspirenxe.strata.api.control.field.TimePicker;
 import org.inspirenxe.strata.api.layout.StackPanel;
 import org.inspirenxe.strata.gallery.Page;
 import org.inspirenxe.strata.spi.Translator;
-import org.inspirenxe.strata.swing.SwingTranslations;
+import org.inspirenxe.strata.gallery.Renderer;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -259,7 +259,7 @@ final class DatePages {
                 return;
             }
             final Locale locale = LANGUAGES.get(event.value()).locale();
-            SwingTranslations.use(locale == null ? Translator.NONE : new Translator() {
+            Renderer.current().useTranslator(locale == null ? Translator.NONE : new Translator() {
                 @Override
                 public Optional<String> translate(final String key) {
                     return Optional.empty();

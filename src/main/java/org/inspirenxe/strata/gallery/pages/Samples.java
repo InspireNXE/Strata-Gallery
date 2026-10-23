@@ -24,12 +24,12 @@ import org.inspirenxe.strata.api.control.collection.ComboBox;
 import org.inspirenxe.strata.api.layout.Orientation;
 import org.inspirenxe.strata.api.layout.StackPanel;
 import org.inspirenxe.strata.api.text.TextStyle;
+import org.inspirenxe.strata.api.visual.PixelBuffer;
 import org.inspirenxe.strata.api.visual.Visual;
 import org.inspirenxe.strata.gallery.Language;
 import org.inspirenxe.strata.gallery.PageContext;
-import org.inspirenxe.strata.swing.SwingVisuals;
+import org.inspirenxe.strata.gallery.Renderer;
 
-import java.awt.image.BufferedImage;
 import java.util.List;
 
 /**
@@ -148,16 +148,16 @@ final class Samples {
      * @return the icon
      */
     static Visual icon(final int argb) {
-        final BufferedImage image = new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB);
+        final PixelBuffer image = PixelBuffer.of(16, 16);
         for (int y = 0; y < 16; y++) {
             for (int x = 0; x < 16; x++) {
                 final int distance = (x - 8) * (x - 8) + (y - 8) * (y - 8);
                 if (distance <= 42) {
-                    image.setRGB(x, y, distance > 30 ? 0xFFE0E6F0 : argb);
+                    image.set(x, y, distance > 30 ? 0xFFE0E6F0 : argb);
                 }
             }
         }
-        return SwingVisuals.image(image);
+        return Renderer.current().image(image.changed());
     }
 
     /**
@@ -166,14 +166,14 @@ final class Samples {
      * @return the banner
      */
     static Visual banner() {
-        final BufferedImage image = new BufferedImage(64, 16, BufferedImage.TYPE_INT_ARGB);
+        final PixelBuffer image = PixelBuffer.of(64, 16);
         for (int y = 0; y < 16; y++) {
             for (int x = 0; x < 64; x++) {
                 final boolean edge = x == 0 || y == 0 || x == 63 || y == 15;
-                image.setRGB(x, y, edge ? 0xFFE0E6F0 : ((x + y) / 4 % 2 == 0 ? 0xFF4C86E0 : 0xFF2F5FA8));
+                image.set(x, y, edge ? 0xFFE0E6F0 : ((x + y) / 4 % 2 == 0 ? 0xFF4C86E0 : 0xFF2F5FA8));
             }
         }
-        return SwingVisuals.image(image);
+        return Renderer.current().image(image.changed());
     }
 
     /**

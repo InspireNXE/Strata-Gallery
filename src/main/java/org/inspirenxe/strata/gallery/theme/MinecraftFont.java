@@ -15,8 +15,6 @@
  */
 package org.inspirenxe.strata.gallery.theme;
 
-import org.inspirenxe.strata.swing.BitmapFont;
-
 import java.awt.image.BufferedImage;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
@@ -28,7 +26,8 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * The game's default font, read from {@code font/default.json} and the files it refers to, as a {@link BitmapFont}.
+ * The game's default font, read from {@code font/default.json} and the files it refers to, as a {@link GalleryFont} of
+ * sheets, which each renderer turns into its adapter's bitmap font.
  *
  * <p>Every copy of a font file contributes its providers, the highest pack first, and a character takes the first
  * glyph any provider gives it, as in game. {@code bitmap} providers become sheets and {@code space} providers fixed
@@ -44,14 +43,14 @@ final class MinecraftFont {
 
     private final MinecraftAssets assets;
     private final Set<String> notes;
-    private final BitmapFont.Builder builder;
+    private final List<GalleryFont.Part> parts;
+    private int sheets;
     private final Deque<String> visiting;
-    private int glyphSheets;
 
     private MinecraftFont(final MinecraftAssets assets, final Set<String> notes) {
         this.assets = assets;
         this.notes = notes;
-        this.builder = BitmapFont.builder(LINE_HEIGHT, ASCENT);
+        this.parts = new ArrayList<>();
         this.visiting = new ArrayDeque<>();
     }
 
@@ -62,14 +61,14 @@ final class MinecraftFont {
      * @param notes where to say what is left out
      * @return the font, or empty if no sheet could be read
      */
-    static Optional<BitmapFont> load(final MinecraftAssets assets, final Set<String> notes) {
+    static Optional<GalleryFont> load(final MinecraftAssets assets, final Set<String> notes) {
         final MinecraftFont font = new MinecraftFont(assets, notes);
         font.font("minecraft:default");
-        if (font.glyphSheets == 0) {
-            notes.add("the game's font could not be read, so text uses Dialog");
+        if (font.sheets == 0) {
+            notes.add("the game's font could not be read, so text uses the system's font");
             return Optional.empty();
         }
-        return Optional.of(font.builder.build());
+        return Optional.of(GalleryFont.sheets(LINE_HEIGHT, ASCENT, font.parts));
     }
 
     private void font(final String id) {
@@ -106,12 +105,13 @@ final class MinecraftFont {
                     map.forEach((key, value) -> {
                         if (key instanceof final String text && !text.isEmpty()
                                 && value instanceof final Double advance) {
-                            this.builder.advance(text.codePointAt(0), advance.floatValue());
+                            this.parts.add(new GalleryFont.Advance(text.codePointAt(0), advance.floatValue()));
                         }
                     });
                 }
             });
-            default -> this.notes.add("font providers of type " + type + " are not read; their characters use Dialog");
+            default -> this.notes.add("font providers of type " + type + " are not read; their characters use the "
+                    + "system's font");
         }
     }
 
@@ -139,12 +139,33 @@ final class MinecraftFont {
                 .filter(Double.class::isInstance)
                 .map(value -> ((Double) value).floatValue())
                 .orElse(DEFAULT_HEIGHT);
-        try {
-            this.builder.sheet(image.get(), height, ((Double) ascent.get()).floatValue(), rows);
-            this.glyphSheets++;
-        } catch (final IllegalArgumentException e) {
-            this.notes.add("font sheet " + file.get() + " was skipped: " + e.getMessage());
+        final String problem = MinecraftFont.problem(image.get(), rows);
+        if (problem != null) {
+            this.notes.add("font sheet " + file.get() + " was skipped: " + problem);
+            return;
         }
+        this.parts.add(new GalleryFont.Sheet(image.get(), height, ((Double) ascent.get()).floatValue(), rows));
+        this.sheets++;
+    }
+
+    /**
+     * Returns why the adapters' bitmap fonts would refuse a sheet, or null when they take it.
+     */
+    private static String problem(final BufferedImage image, final List<String> rows) {
+        if (rows.isEmpty()) {
+            return "it has no rows";
+        }
+        final int columns = rows.getFirst().codePointCount(0, rows.getFirst().length());
+        for (final String row : rows) {
+            if (row.codePointCount(0, row.length()) != columns) {
+                return "every row needs " + columns + " characters: " + row;
+            }
+        }
+        if (columns == 0 || image.getWidth() % columns != 0 || image.getHeight() % rows.size() != 0) {
+            return "a " + image.getWidth() + " by " + image.getHeight() + " image does not divide into " + columns
+                    + " by " + rows.size() + " cells";
+        }
+        return null;
     }
 
     /**

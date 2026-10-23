@@ -15,68 +15,56 @@
  */
 package org.inspirenxe.strata.gallery;
 
-import org.inspirenxe.strata.api.control.button.ToggleSwitch;
-import org.inspirenxe.strata.api.control.display.ProgressBar;
-import org.inspirenxe.strata.api.control.pane.Expander;
-import org.inspirenxe.strata.api.control.pane.NavigationView;
-import org.inspirenxe.strata.api.layout.ScrollPanel;
-import org.inspirenxe.strata.api.overlay.Overlays;
-import org.inspirenxe.strata.api.theme.Theme;
+import org.inspirenxe.strata.api.visual.PixelBuffer;
 import org.inspirenxe.strata.gallery.pages.Pages;
 import org.inspirenxe.strata.gallery.theme.GalleryLook;
-import org.inspirenxe.strata.gallery.theme.SwitchableFont;
 import org.inspirenxe.strata.gallery.theme.ThemeChoice;
-import org.inspirenxe.strata.swing.StrataPanel;
 import org.inspirenxe.strata.swing.SwingPlatform;
 import org.inspirenxe.strata.swing.SwingSnapshot;
-import org.inspirenxe.strata.swing.SwingTextMetrics;
-import org.inspirenxe.strata.swing.SwingTranslations;
+import org.inspirenxe.strata.vulkan.VulkanPlatform;
+import org.inspirenxe.strata.vulkan.VulkanSnapshot;
 
-import java.awt.GraphicsEnvironment;
-import java.awt.Rectangle;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import javax.imageio.ImageIO;
-import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
 
 /**
  * Opens the gallery in a window. {@code --snapshot <directory>} renders every page to a PNG instead, without a
  * display.
  *
- * <p>The gallery uses Strata's flat theme unless {@code --theme minecraft} or {@code --theme minecraft:<pack>} asks
- * for Minecraft's look, read from the Minecraft install on this computer. In a window, a selector beside the page
- * title switches between the looks that are available.</p>
+ * <p>{@code --renderer java2d}, the default, shows the gallery with the Swing adapter, and {@code --renderer vulkan}
+ * with the Vulkan adapter in a GLFW window; snapshots use the renderer chosen too. The gallery uses Strata's flat theme
+ * unless {@code --theme minecraft} or {@code --theme minecraft:<pack>} asks for Minecraft's look, read from the
+ * Minecraft install on this computer. In a window, a selector beside the page title switches between the looks that
+ * are available.</p>
  */
 public final class Gallery {
-    private static final float SCALE = 1.5f;
-    private static final int WIDTH = 1400;
-    private static final int HEIGHT = 900;
-    /**
-     * The durations, in milliseconds, that a page turns on to try built-in motion.
-     */
-    private static final Map<String, Float> MOTION = Map.of(
-            ToggleSwitch.STYLE_ANIMATION, 150f,
-            Expander.STYLE_ANIMATION, 200f,
-            NavigationView.STYLE_ANIMATION, 200f,
-            ScrollPanel.STYLE_SMOOTH, 150f,
-            Overlays.STYLE_TOAST_FADE, 250f,
-            ProgressBar.STYLE_ANIMATION, 300f);
-    private static final String USAGE = "Usage: gallery [--theme flat|minecraft|minecraft:<pack>] "
-            + "[--snapshot <directory> [--size <width>x<height>]]";
+    static final float SCALE = 1.5f;
+    static final int WIDTH = 1400;
+    static final int HEIGHT = 900;
+    private static final String USAGE = "Usage: gallery [--renderer java2d|vulkan] "
+            + "[--theme flat|minecraft|minecraft:<pack>] [--snapshot <directory> [--size <width>x<height>]]";
 
     private Gallery() {
     }
 
     public static void main(final String[] args) throws IOException {
         final List<String> rest = new ArrayList<>(List.of(args));
+        final String rendererId = Gallery.takeOption(rest, "--renderer");
         final String themeId = Gallery.takeOption(rest, "--theme");
         final String size = Gallery.takeOption(rest, "--size");
+        final Renderer renderer = rendererId == null ? Renderer.JAVA2D : Gallery.parse(rendererId);
+        renderer.use();
+        if (renderer == Renderer.VULKAN) {
+            // GLFW owns the windows; AWT only reads and writes images, and must not start a toolkit of its own
+            System.setProperty("java.awt.headless", "true");
+        }
         // The gallery's own messages, such as the plural forms, are in English until a page changes the language
-        SwingTranslations.use(Language.ENGLISH.translator());
+        renderer.useTranslator(Language.ENGLISH.translator());
         if (rest.size() == 2 && rest.get(0).equals("--snapshot")) {
             final ThemeChoice theme = themeId == null
                     ? ThemeChoice.FLAT
@@ -89,7 +77,20 @@ public final class Gallery {
         }
         final List<ThemeChoice> themes = ThemeChoice.available();
         final ThemeChoice theme = themeId == null ? ThemeChoice.FLAT : Gallery.choose(themeId, themes);
-        SwingUtilities.invokeLater(() -> Gallery.openWindow(themes, theme));
+        if (renderer == Renderer.VULKAN) {
+            new VulkanGallery(themes, Gallery.load(theme)).run();
+        } else {
+            SwingUtilities.invokeLater(() -> new SwingGallery(themes, Gallery.load(theme)).open());
+        }
+    }
+
+    /**
+     * Returns the window's title, which names the renderer.
+     *
+     * @return the title
+     */
+    static String title() {
+        return "Strata Gallery (" + Renderer.current().label() + ")";
     }
 
     /**
@@ -110,6 +111,15 @@ public final class Gallery {
         return value;
     }
 
+    private static Renderer parse(final String id) {
+        try {
+            return Renderer.parse(id);
+        } catch (final IllegalArgumentException e) {
+            Gallery.fail(e.getMessage());
+            throw e;
+        }
+    }
+
     private static ThemeChoice choose(final String id, final List<ThemeChoice> themes) {
         try {
             return ThemeChoice.parse(id, themes);
@@ -125,8 +135,27 @@ public final class Gallery {
     }
 
     /**
-     * Renders every page. The size, {@code <width>x<height>} in pixels, defaults to the window's, and a taller one
-     * shows pages that scroll in the window in full.
+     * Loads a look for a window, falling back to flat when it cannot be read.
+     */
+    private static GalleryLook load(final ThemeChoice theme) {
+        GalleryLook look;
+        try {
+            look = theme.load();
+        } catch (final IOException e) {
+            System.err.println("Cannot load " + theme.label() + ": " + e.getMessage());
+            try {
+                look = ThemeChoice.FLAT.load();
+            } catch (final IOException flat) {
+                throw new IllegalStateException(flat);
+            }
+        }
+        look.notes().forEach(note -> System.out.println("Note: " + note));
+        return look;
+    }
+
+    /**
+     * Renders every page with the renderer chosen. The size, {@code <width>x<height>} in pixels, defaults to the
+     * window's, and a taller one shows pages that scroll in the window in full.
      */
     private static void snapshots(final File directory, final ThemeChoice theme, final String size)
             throws IOException {
@@ -141,6 +170,9 @@ public final class Gallery {
                 Gallery.fail("Bad size " + size + "; use <width>x<height>");
             }
         }
+        if (Renderer.current() == Renderer.VULKAN && !VulkanSnapshot.isSupported()) {
+            Gallery.fail("No Vulkan device can render snapshots here");
+        }
         directory.mkdirs();
         final List<Page> pages = Pages.all();
         try (GalleryLook look = theme.load()) {
@@ -149,136 +181,22 @@ public final class Gallery {
                 final File out = new File(directory, page.slug() + ".png");
                 final GalleryScreen screen = new GalleryScreen(pages, null, page, look.chrome(), List.of(), theme,
                         null);
-                ImageIO.write(SwingSnapshot.render(new SwingPlatform(look.metrics()), screen, look.theme(), width,
-                        height, SCALE, look.sprites(), stack -> { }), "png", out);
+                ImageIO.write(Gallery.snapshot(look, screen, width, height), "png", out);
                 System.out.println("Wrote " + out.getAbsolutePath());
             }
         }
     }
 
-    private static void openWindow(final List<ThemeChoice> themes, final ThemeChoice theme) {
-        GalleryLook look;
-        try {
-            look = theme.load();
-        } catch (final IOException e) {
-            System.err.println("Cannot load " + theme.label() + ": " + e.getMessage());
-            try {
-                look = ThemeChoice.FLAT.load();
-            } catch (final IOException flat) {
-                throw new IllegalStateException(flat);
-            }
+    private static BufferedImage snapshot(final GalleryLook look, final GalleryScreen screen, final int width,
+                                          final int height) {
+        if (Renderer.current() == Renderer.JAVA2D) {
+            return SwingSnapshot.render(new SwingPlatform(look.swingMetrics()), screen, look.theme(), width, height,
+                    SCALE, look.swingSprites(), stack -> { });
         }
-        look.notes().forEach(note -> System.out.println("Note: " + note));
-        new GalleryWindow(themes, look).open();
-    }
-
-    /**
-     * The gallery window. It keeps one panel and one platform for the whole run, and changes look in place: the
-     * fonts switch, the panel takes the new sprites, the stack the new theme, and a new gallery screen opens on the
-     * page that was showing.
-     */
-    private static final class GalleryWindow {
-        private final List<ThemeChoice> themes;
-        private final List<Page> pages;
-        private final SwitchableFont text;
-        private final SwitchableFont monospace;
-        private final StrataPanel panel;
-        private GalleryLook look;
-        private boolean motion;
-        private Map<String, Float> metrics = Map.of();
-
-        GalleryWindow(final List<ThemeChoice> themes, final GalleryLook look) {
-            this.themes = themes;
-            this.pages = Pages.all();
-            this.look = look;
-            this.text = new SwitchableFont(look.text());
-            this.monospace = new SwitchableFont(look.monospace());
-            final SwingPlatform platform = new SwingPlatform(new SwingTextMetrics(this.text, this.monospace));
-            this.panel = new StrataPanel(platform, look.theme(), SCALE, look.sprites());
-        }
-
-        void open() {
-            // Strata.screens() opens on this panel. The gallery pushes its own screens, so they follow theme changes
-            this.panel.setDefault();
-            this.panel.screens().push(this.screen(this.pages.getFirst()));
-            final JFrame frame = new JFrame("Strata Gallery");
-            frame.setContentPane(this.panel);
-            // The panel asks the screens before the window closes, and shows the top screen's title
-            this.panel.manageWindow(frame);
-            frame.pack();
-            // The panel asks for what the first page needs, which can be taller than the screen
-            final Rectangle usable = GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds();
-            frame.setSize(Math.min(frame.getWidth(), Math.min(WIDTH, usable.width)),
-                    Math.min(frame.getHeight(), Math.min(HEIGHT, usable.height)));
-            frame.setLocationRelativeTo(null);
-            frame.setVisible(true);
-            this.panel.requestFocusInWindow();
-        }
-
-        private GalleryScreen screen(final Page page) {
-            return new GalleryScreen(this.pages, screen -> this.panel.screens().push(screen), page,
-                    this.look.chrome(), this.themes, this.look.choice(),
-                    // The selector is on the screen being replaced, so wait until its event is done
-                    (next, at) -> SwingUtilities.invokeLater(() -> this.switchTo(next, at)))
-                    .withMotion(on -> SwingUtilities.invokeLater(() -> this.setMotion(on)))
-                    .withMetrics(metrics -> SwingUtilities.invokeLater(() -> this.setMetrics(metrics)))
-                    .withLanguage(language -> SwingUtilities.invokeLater(() ->
-                            SwingTranslations.use(language.translator())))
-                    .withScale(this.panel.scale(), scale -> SwingUtilities.invokeLater(() -> this.panel.setScale(scale)));
-        }
-
-        /**
-         * Turns the durations of built-in motion on or off in the look's theme, for every screen.
-         */
-        private void setMotion(final boolean on) {
-            this.motion = on;
-            this.panel.screens().setTheme(this.themeWithMotion(this.look.theme()));
-        }
-
-        /**
-         * Sets metrics a page wants on top of the look's theme, for every screen.
-         */
-        private void setMetrics(final Map<String, Float> metrics) {
-            this.metrics = metrics;
-            this.panel.screens().setTheme(this.themeWithMotion(this.look.theme()));
-        }
-
-        private Theme themeWithMotion(final Theme theme) {
-            if (!this.motion && this.metrics.isEmpty()) {
-                return theme;
-            }
-            final Theme.Builder builder = theme.toBuilder();
-            if (this.motion) {
-                MOTION.forEach(builder::metric);
-            }
-            this.metrics.forEach(builder::metric);
-            return builder.build();
-        }
-
-        private void switchTo(final ThemeChoice theme, final Page page) {
-            final GalleryLook next;
-            try {
-                next = theme.load();
-            } catch (final IOException e) {
-                System.err.println("Cannot load " + theme.label() + ": " + e.getMessage());
-                return;
-            }
-            next.notes().forEach(note -> System.out.println("Note: " + note));
-            final GalleryLook previous = this.look;
-            this.look = next;
-            this.panel.screens().clear();
-            this.text.use(next.text());
-            this.monospace.use(next.monospace());
-            this.motion = false;
-            this.metrics = Map.of();
-            this.panel.screens().setTheme(next.theme());
-            this.panel.setSprites(next.sprites());
-            this.panel.screens().push(this.screen(page));
-            try {
-                previous.close();
-            } catch (final IOException e) {
-                System.err.println("Cannot close " + previous.choice().label() + ": " + e.getMessage());
-            }
-        }
+        final PixelBuffer pixels = VulkanSnapshot.render(new VulkanPlatform(look.vulkanMetrics()), screen, look.theme(),
+                width, height, SCALE, look.vulkanSprites(), stack -> { });
+        final BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        image.setRGB(0, 0, width, height, pixels.array(), 0, width);
+        return image;
     }
 }

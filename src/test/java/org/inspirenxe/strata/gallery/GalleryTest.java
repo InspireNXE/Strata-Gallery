@@ -21,9 +21,11 @@ import org.inspirenxe.strata.api.geometry.Rect;
 import org.inspirenxe.strata.api.input.Modifiers;
 import org.inspirenxe.strata.api.input.MouseButton;
 import org.inspirenxe.strata.api.theme.Themes;
+import org.inspirenxe.strata.api.visual.PixelBuffer;
 import org.inspirenxe.strata.gallery.pages.Pages;
 import org.inspirenxe.strata.spi.ScreenStack;
 import org.inspirenxe.strata.swing.SwingSnapshot;
+import org.inspirenxe.strata.vulkan.VulkanSnapshot;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
@@ -34,8 +36,10 @@ import java.util.Set;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 class GalleryTest {
 
@@ -45,6 +49,22 @@ class GalleryTest {
         return pages.stream().map(page -> DynamicTest.dynamicTest(page.slug(), () ->
                 assertNotNull(SwingSnapshot.render(new GalleryScreen(pages, null, page),
                         Themes.flat(), 1400, 900, 1.5f))));
+    }
+
+    @TestFactory
+    Stream<DynamicTest> everyPageRendersOnVulkan() {
+        final List<Page> pages = Pages.all();
+        return pages.stream().map(page -> DynamicTest.dynamicTest(page.slug(), () -> {
+            assumeTrue(VulkanSnapshot.isSupported(), "no Vulkan device");
+            Renderer.VULKAN.use();
+            try {
+                final PixelBuffer pixels = VulkanSnapshot.render(new GalleryScreen(Pages.all(), null, page),
+                        Themes.flat(), 1400, 900, 1.5f);
+                assertNotEquals(0, pixels.get(10, 10) >>> 24, "the gallery's frame is drawn");
+            } finally {
+                Renderer.JAVA2D.use();
+            }
+        }));
     }
 
     @Test
