@@ -356,7 +356,8 @@ final class VulkanGallery extends GalleryHost {
             if (due && this.width > 0 && this.height > 0) {
                 last = now;
                 this.drawFrame();
-                next = screens.nextFrameNanos();
+                // The view counts the platform scheduler's next task, so a screen's repeating task wakes the loop too
+                next = this.strata.nextFrameNanos();
             }
             long wake = next == Long.MAX_VALUE ? System.nanoTime() + IDLE_NANOS : next;
             if (screens.needsFrame()) {

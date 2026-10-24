@@ -144,6 +144,23 @@ final class AppPages {
                         // The window's title follows the text
                         title.onEvent(TextInput.EDITED, event -> handle.setTitle(Text.of(event.value())));
                         """, context -> AppPages.unsaved(context)),
+                new Page(SECTION, "Repeating tasks", "A screen can ask for a task to run every so often, to "
+                        + "refresh figures or check on work. The platform runs it on the UI thread on its own beat, "
+                        + "a timer here and the game's tick in Minecraft, and it stops when the screen closes.", """
+                        public final class StatusScreen implements Screen {
+                            private Label uptime;
+                            private int seconds;
+
+                            @Override
+                            public void opened(final ScreenHandle handle) {
+                                // Runs every second until the subscription closes or the screen does
+                                handle.every(1000, () -> {
+                                    this.seconds++;
+                                    this.uptime.setText(Text.of("Open for " + this.seconds + " s"));
+                                });
+                            }
+                        }
+                        """, context -> AppPages.repeating(context)),
                 new Page(SECTION, "Styling", "A container can set the text style of everything inside it, a "
                         + "developer's component can name its own style states for a theme, and a theme override "
                         + "can recolor a style without losing the rest of it.", """
@@ -280,6 +297,58 @@ final class AppPages {
                         ? Samples.note(ui, "The editor opens over the gallery. Close asks through the screen's "
                                 + "closeRequested, and so does the window's close button.")
                         : Samples.note(ui, "The editor opens only in the window, not in a snapshot."));
+    }
+
+    private static Component<?> repeating(final PageContext context) {
+        final ComponentFactory ui = context.ui();
+        final Button open = ui.button("Open a screen that counts").setEnabled(context.canOpen())
+                .onEvent(Button.PRESSED, event -> {
+                    final Label uptime = ui.label("Open for 0 s");
+                    final Label ticks = ui.label("Ticks: 0");
+                    final Button close = ui.button("Close");
+                    final StackPanel content = ui.stackPanel().setSpacing(6).setPadding(12)
+                            .add(uptime).add(ticks).add(close);
+                    final ScreenHandle[] handle = new ScreenHandle[1];
+                    close.onEvent(Button.PRESSED, press -> handle[0].close());
+                    context.open(new Screen() {
+                        private int seconds;
+                        private int counted;
+
+                        @Override
+                        public Component<?> build(final ComponentFactory factory) {
+                            return factory.anchorPanel().setBackground(Paint.solid(0xFF1E1F22))
+                                    .add(content.setAnchor(Anchor.CENTER)).setAnchor(Anchor.FILL);
+                        }
+
+                        @Override
+                        public boolean hidesBackground() {
+                            return true;
+                        }
+
+                        @Override
+                        public void opened(final ScreenHandle opened) {
+                            handle[0] = opened;
+                            opened.every(1000L, () -> {
+                                this.seconds++;
+                                uptime.setText(Text.of("Open for " + this.seconds + " s"));
+                                context.log("every 1000 ms   " + this.seconds);
+                            });
+                            opened.every(100L, () -> ticks.setText(Text.of("Ticks: " + ++this.counted)));
+                        }
+
+                        @Override
+                        public void closed() {
+                            context.log("closed   its tasks stopped");
+                        }
+                    });
+                });
+        return Samples.column(ui,
+                Samples.section(ui, "A screen that polls",
+                        Samples.example(ui, "One task every second and one every 100 ms; the log shows the slow "
+                                + "one, and closing stops both", open)),
+                context.canOpen()
+                        ? Samples.note(ui, "The screen opens over the gallery.")
+                        : Samples.note(ui, "The screen opens only in the window, not in a snapshot."));
     }
 
     private static Component<?> styling(final PageContext context) {

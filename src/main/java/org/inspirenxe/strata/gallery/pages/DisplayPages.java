@@ -32,6 +32,7 @@ import org.inspirenxe.strata.api.layout.StackPanel;
 import org.inspirenxe.strata.api.text.Text;
 import org.inspirenxe.strata.api.text.TextOverflow;
 import org.inspirenxe.strata.api.text.TextStyle;
+import org.inspirenxe.strata.api.text.TextStylePatch;
 import org.inspirenxe.strata.api.theme.Paint;
 import org.inspirenxe.strata.api.theme.SpriteId;
 import org.inspirenxe.strata.gallery.Page;
@@ -73,10 +74,12 @@ final class DisplayPages {
     static List<Page> pages() {
         return List.of(
                 new Page(SECTION, "Label", "Text the user reads but does not edit. A label can wrap, cut itself "
-                        + "short with an ellipsis, mix styles in one text and draw larger or smaller.", """
+                        + "short with an ellipsis, mix styles in one text, take a text size and a font, and draw "
+                        + "larger or smaller.", """
                         final Label title = ui.label("Fresh pears")
-                                .setStyle(TextStyle.DEFAULT.withBold(true))
-                                .setTextScale(1.5f);
+                                .setStyle(TextStyle.DEFAULT.withBold(true).withSize(14f));
+                        // A size for everything in a panel, and a font the platform knows by id
+                        panel.setTextStyle(TextStylePatch.of().size(12f).font(FontId.of("app", "ubuntu")));
                         final Label note = ui.label("Ana listed three crates of apples at the morning market.")
                                 .setWrap(true)
                                 .setWidth(180);
@@ -104,6 +107,11 @@ final class DisplayPages {
                                     Samples.example(ui, "Ellipsis at 120 units", ui.label(DisplayPages.LONG_TEXT)
                                             .setOverflow(TextOverflow.ELLIPSIS)
                                             .setWidth(120))),
+                            Samples.section(ui, "Sizes",
+                                    Samples.example(ui, "Size 7", sized(ui, 7f, "Small print")),
+                                    Samples.example(ui, "The default size", ui.label("Fresh pears")),
+                                    Samples.example(ui, "Size 14", sized(ui, 14f, "Fresh pears")),
+                                    Samples.example(ui, "Size 20", sized(ui, 20f, "Title"))),
                             Samples.section(ui, "Styled text and scale",
                                     Samples.example(ui, "Styled text", ui.label(Text.of("125.50").color(0xFFE8C547).bold()
                                             .append(Text.of(" per crate from ").color(Samples.MUTED))
@@ -392,6 +400,13 @@ final class DisplayPages {
                                             ui.separator(Orientation.VERTICAL).setHeight(12),
                                             ui.label("Cleo")))));
                 }));
+    }
+
+    /**
+     * A label in a panel that sets a text size, so the theme's color and the rest of its style stay.
+     */
+    private static Component<?> sized(final ComponentFactory ui, final float size, final String text) {
+        return ui.stackPanel().setTextStyle(TextStylePatch.of().size(size)).add(ui.label(text));
     }
 
     /**
