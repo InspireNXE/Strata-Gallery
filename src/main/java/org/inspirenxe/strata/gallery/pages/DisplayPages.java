@@ -35,6 +35,8 @@ import org.inspirenxe.strata.api.text.TextStyle;
 import org.inspirenxe.strata.api.text.TextStylePatch;
 import org.inspirenxe.strata.api.theme.Paint;
 import org.inspirenxe.strata.api.theme.SpriteId;
+import org.inspirenxe.strata.api.visual.PixelBuffer;
+import org.inspirenxe.strata.api.visual.Sampling;
 import org.inspirenxe.strata.gallery.Page;
 import org.inspirenxe.strata.gallery.PageContext;
 
@@ -59,6 +61,35 @@ final class DisplayPages {
     }
 
     private DisplayPages() {
+    }
+
+    /**
+     * A 48 by 24 stand-in photo: a sky fading into a hill.
+     */
+    private static PixelBuffer photo() {
+        final PixelBuffer photo = PixelBuffer.of(48, 24);
+        for (int y = 0; y < 24; y++) {
+            for (int x = 0; x < 48; x++) {
+                final boolean hill = y > 14 + 5 * Math.sin(x / 7.0);
+                final int shade = 120 + y * 4;
+                photo.set(x, y, hill ? 0xFF3A7A3A + (y << 8) : 0xFF000000 | shade / 2 << 16 | shade << 8 | 0xF0);
+            }
+        }
+        return photo.changed();
+    }
+
+    /**
+     * A 12 by 6 buffer of colored squares, to show nearest and linear sampling apart.
+     */
+    private static PixelBuffer tiny() {
+        final PixelBuffer tiny = PixelBuffer.of(12, 6);
+        final int[] colors = {0xFFE05050, 0xFF4C86E0, 0xFF43A047, 0xFFE0A030};
+        for (int y = 0; y < 6; y++) {
+            for (int x = 0; x < 12; x++) {
+                tiny.set(x, y, colors[(x / 3 + y / 3) % colors.length]);
+            }
+        }
+        return tiny.changed();
     }
 
     /**
@@ -167,6 +198,11 @@ final class DisplayPages {
                         // COVER fills the slot and cuts what overflows; NONE keeps the image's own size
                         final Image cover = ui.image(bannerVisual).setScaling(Image.Scaling.COVER).setSize(48, 48);
                         final Image none = ui.image(bannerVisual).setScaling(Image.Scaling.NONE).setSize(48, 48);
+
+                        // Pixels bring their size, so FIT keeps their shape with no size given
+                        final Image photo = ui.image().setPixels(photoPixels).setScaling(Image.Scaling.FIT);
+                        // Linear sampling for a photo, nearest (the default) for pixel art
+                        final Image smooth = ui.image().setPixels(photoPixels).setSampling(Sampling.LINEAR);
                         """, context -> {
                     final ComponentFactory ui = context.ui();
                     return Samples.column(ui,
@@ -192,6 +228,21 @@ final class DisplayPages {
                                     Samples.example(ui, "NONE", DisplayPages.framed(ui, ui.image(Samples.banner())
                                             .setScaling(Image.Scaling.NONE)
                                             .setSize(48, 48)))),
+                            Samples.section(ui, "Size from the pixels",
+                                    Samples.example(ui, "A 48 by 24 buffer, no size given",
+                                            ui.image().setPixels(DisplayPages.photo())),
+                                    Samples.example(ui, "FIT in an 80 by 80 slot keeps 2 to 1",
+                                            DisplayPages.framed(ui, ui.image().setPixels(DisplayPages.photo())
+                                                    .setScaling(Image.Scaling.FIT)
+                                                    .setSize(80, 80)))),
+                            Samples.section(ui, "Sampling a 12 by 6 buffer at 96 by 48",
+                                    Samples.example(ui, "NEAREST, the default", ui.image()
+                                            .setPixels(DisplayPages.tiny())
+                                            .setImageSize(96, 48)),
+                                    Samples.example(ui, "LINEAR", ui.image()
+                                            .setPixels(DisplayPages.tiny())
+                                            .setImageSize(96, 48)
+                                            .setSampling(Sampling.LINEAR))),
                             Samples.section(ui, "Tint",
                                     Samples.example(ui, "None", ui.image(Samples.icon(0xFFFFFFFF))
                                             .setImageSize(32, 32)),

@@ -29,6 +29,7 @@ import org.inspirenxe.strata.api.control.button.ToggleButton;
 import org.inspirenxe.strata.api.control.field.ColorPicker;
 import org.inspirenxe.strata.api.control.menu.Flyout;
 import org.inspirenxe.strata.api.control.menu.Menu;
+import org.inspirenxe.strata.api.layout.HorizontalAlignment;
 import org.inspirenxe.strata.api.layout.Orientation;
 import org.inspirenxe.strata.api.layout.StackPanel;
 import org.inspirenxe.strata.api.state.State;
@@ -71,6 +72,8 @@ final class ButtonPages {
                         final Button paste = ui.button("Paste")
                                 .setIcon(pasteIcon)
                                 .setIconPlacement(IconPlacement.TOP);
+                        // A full-width menu button with its caption at the left
+                        final Button play = ui.button("Play").setCaptionAlignment(HorizontalAlignment.LEFT);
                         """, context -> {
                     final ComponentFactory ui = context.ui();
                     return Samples.column(ui,
@@ -100,6 +103,15 @@ final class ButtonPages {
                                     Samples.example(ui, "BOTTOM", ui.button("Sort")
                                             .setIcon(Samples.icon(0xFF8E6AD8))
                                             .setIconPlacement(IconPlacement.BOTTOM))),
+                            Samples.section(ui, "Caption alignment in a 160 wide button",
+                                    Samples.example(ui, "LEFT", ui.button("Play").setWidth(160)
+                                            .setCaptionAlignment(HorizontalAlignment.LEFT)),
+                                    Samples.example(ui, "CENTER, the default", ui.button("Options").setWidth(160)),
+                                    Samples.example(ui, "RIGHT", ui.button("Quit").setWidth(160)
+                                            .setCaptionAlignment(HorizontalAlignment.RIGHT)),
+                                    Samples.example(ui, "LEFT with an icon", ui.button("Refresh").setWidth(160)
+                                            .setIcon(Samples.icon())
+                                            .setCaptionAlignment(HorizontalAlignment.LEFT))),
                             Samples.section(ui, "Default, cancel and mnemonic",
                                     Samples.example(ui, "Enter in the box presses Search, Escape presses Clear",
                                             ButtonPages.searchForm(ui)),

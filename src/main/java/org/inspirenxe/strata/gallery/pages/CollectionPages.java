@@ -36,6 +36,11 @@ import org.inspirenxe.strata.api.control.collection.TableView;
 import org.inspirenxe.strata.api.control.collection.TreeView;
 import org.inspirenxe.strata.api.control.field.TextBox;
 import org.inspirenxe.strata.api.event.input.InputEvents;
+import org.inspirenxe.strata.api.extension.CustomComponent;
+import org.inspirenxe.strata.api.extension.MeasureContext;
+import org.inspirenxe.strata.api.extension.Painter;
+import org.inspirenxe.strata.api.geometry.Rect;
+import org.inspirenxe.strata.api.geometry.Size;
 import org.inspirenxe.strata.api.input.Key;
 import org.inspirenxe.strata.api.input.KeyAction;
 import org.inspirenxe.strata.api.layout.Anchor;
@@ -45,6 +50,7 @@ import org.inspirenxe.strata.api.layout.Orientation;
 import org.inspirenxe.strata.api.layout.ScrollPanel;
 import org.inspirenxe.strata.api.layout.VerticalAlignment;
 import org.inspirenxe.strata.api.text.Text;
+import org.inspirenxe.strata.api.text.TextSpan;
 import org.inspirenxe.strata.api.text.TextStyle;
 import org.inspirenxe.strata.api.transfer.Transfer;
 import org.inspirenxe.strata.gallery.Page;
@@ -64,6 +70,37 @@ import java.util.stream.IntStream;
  */
 final class CollectionPages {
     private static final String SECTION = "Collections";
+
+    /**
+     * A menu row as a developer writes one: its own look from the row's style states, with an accent bar at the
+     * left of the selected row.
+     */
+    private static final class MenuRow extends CustomComponent<MenuRow> {
+        private final TextSpan caption;
+
+        MenuRow(final ComponentFactory ui, final String caption) {
+            super(ui);
+            this.caption = TextSpan.of(caption);
+        }
+
+        @Override
+        protected Size measure(final MeasureContext context, final float availableWidth, final float availableHeight) {
+            return new Size(Float.isFinite(availableWidth) ? availableWidth : 120, 18);
+        }
+
+        @Override
+        protected void paint(final Painter painter, final Rect bounds) {
+            final boolean selected = this.hasStyleState(ListView.STATE_SELECTED);
+            if (selected || this.hasStyleState(ListView.STATE_ROW_HOVERED)) {
+                painter.fill(bounds, selected ? 0x40FFFFFF : 0x20FFFFFF);
+            }
+            if (selected) {
+                painter.fill(new Rect(bounds.x(), bounds.y(), 3, bounds.height()), 0xFFE0A030);
+            }
+            painter.text(this.caption, new Rect(bounds.x() + 8, bounds.y(), bounds.width() - 8, bounds.height()),
+                    HorizontalAlignment.LEFT, VerticalAlignment.MIDDLE);
+        }
+    }
     private static final List<Fruit> FRUIT = List.of(
             new Fruit("Apple", 0xFFD9443B, 0.40, 120),
             new Fruit("Banana", 0xFFE8C93A, 0.25, 80),
@@ -194,6 +231,13 @@ final class CollectionPages {
                                             + "a match", typed),
                                     Samples.example(ui, "Typing starts a jump unless this is off",
                                             CollectionPages.typeAheadBox(ui, typed::setTypeAhead, name -> name))),
+                            Samples.section(ui, "Rows drawn by their cells",
+                                    Samples.example(ui, "setRowBackgrounds(false), and cells that draw an accent "
+                                            + "while selected", ui.<String>listView(name -> new MenuRow(ui, name))
+                                            .setRowBackgrounds(false)
+                                            .setItems(List.of("Play", "Options", "Quit"))
+                                            .setRowHeight(18)
+                                            .setSize(160, 60))),
                             Samples.section(ui, "Editing in place",
                                     Samples.example(ui, "F2 or a double press edits the value, Enter commits and "
                                             + "Escape cancels", editable),

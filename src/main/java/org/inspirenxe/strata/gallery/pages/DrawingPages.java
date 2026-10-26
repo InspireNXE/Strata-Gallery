@@ -21,6 +21,7 @@ import org.inspirenxe.strata.api.component.Component;
 import org.inspirenxe.strata.api.control.attribute.value.Ranged;
 import org.inspirenxe.strata.api.control.button.Button;
 import org.inspirenxe.strata.api.control.display.Image;
+import org.inspirenxe.strata.api.control.display.Label;
 import org.inspirenxe.strata.api.control.field.Slider;
 import org.inspirenxe.strata.api.extension.CustomComponent;
 import org.inspirenxe.strata.api.extension.Gradient;
@@ -31,7 +32,12 @@ import org.inspirenxe.strata.api.extension.Stroke;
 import org.inspirenxe.strata.api.geometry.Insets;
 import org.inspirenxe.strata.api.geometry.Rect;
 import org.inspirenxe.strata.api.geometry.Size;
+import org.inspirenxe.strata.api.layout.HorizontalAlignment;
+import org.inspirenxe.strata.api.layout.Orientation;
+import org.inspirenxe.strata.api.layout.StackPanel;
+import org.inspirenxe.strata.api.layout.VerticalAlignment;
 import org.inspirenxe.strata.api.text.TextSpan;
+import org.inspirenxe.strata.api.theme.Paint;
 import org.inspirenxe.strata.api.theme.SpriteId;
 import org.inspirenxe.strata.api.visual.PixelBuffer;
 import org.inspirenxe.strata.gallery.Page;
@@ -106,7 +112,69 @@ final class DrawingPages {
                         // painter.pixelsPerUnit() is the device pixels in one UI unit, now and under every scaled()
                         final float hairline = 1f / painter.pixelsPerUnit();
                         painter.fill(new Rect(x, y, width, hairline), 0xFF8A9099);
-                        """, context -> DrawingPages.density(context)));
+                        """, context -> DrawingPages.density(context)),
+                new Page(SECTION, "Text in a box", "One line of text placed in a rectangle at the left, center or "
+                        + "right and the top, middle or bottom, measured for you. The baseline is the font's ascent "
+                        + "below the line's top.", """
+                        painter.text(TextSpan.of("Ana"), bounds, HorizontalAlignment.CENTER, VerticalAlignment.MIDDLE);
+                        // The line the letters sit on, for a rule under the text
+                        final float baseline = top + environment().text().ascent(style);
+                        """, context -> DrawingPages.alignedText(context)),
+                new Page(SECTION, "Frosted glass", "A panel that blurs what lies behind it and tints it, with "
+                        + "rounded corners. The engine blurs a backdrop image the application gives it: this "
+                        + "window's is a field of colored circles. Where there is none, the panel draws its tint.",
+                        """
+                        // Any panel's background, or a theme key, can be glass
+                        final StackPanel glass = ui.stackPanel(Orientation.VERTICAL)
+                                .setBackground(Paint.backdrop(8, 0xA0181A1F, 6))
+                                .add(ui.label("Inventory"));
+                        // In a theme file: { "backdrop": 8, "tint": "#A0181A1F", "radius": 6 }
+                        // The application gives its adapter the picture behind the screens
+                        swingPanel.setBackdrop(sceneImage);
+                        vulkanView.setBackdrop(renderer.image(sceneView, width, height));
+                        """, context -> DrawingPages.glass(context)));
+    }
+
+    private static Component<?> alignedText(final PageContext context) {
+        final ComponentFactory ui = context.ui();
+        final HorizontalAlignment[] across = {HorizontalAlignment.LEFT, HorizontalAlignment.CENTER,
+                HorizontalAlignment.RIGHT};
+        final VerticalAlignment[] down = {VerticalAlignment.TOP, VerticalAlignment.MIDDLE, VerticalAlignment.BOTTOM};
+        final TextSpan name = TextSpan.of("Ana");
+        final Board grid = new Board(ui, 240, 120, (painter, bounds) -> {
+            painter.fill(bounds, 0xFF1E1F22);
+            for (int row = 0; row < 3; row++) {
+                for (int column = 0; column < 3; column++) {
+                    final Rect cell = new Rect(bounds.x() + column * 80 + 2, bounds.y() + row * 40 + 2, 76, 36);
+                    painter.strokeRect(cell, 0f, Stroke.of(1f), 0xFF4A4D55);
+                    painter.text(name, cell, across[column], down[row]);
+                }
+            }
+        });
+        return Samples.column(ui,
+                Samples.section(ui, "Each alignment in its own box", Samples.example(ui,
+                        "Rows TOP, MIDDLE and BOTTOM; columns LEFT, CENTER and RIGHT", grid)));
+    }
+
+    private static Component<?> glass(final PageContext context) {
+        final ComponentFactory ui = context.ui();
+        final Label title = ui.label("Inventory");
+        final StackPanel glass = ui.stackPanel(Orientation.VERTICAL)
+                .setBackground(Paint.backdrop(8, 0xA0181A1F, 6))
+                .setPadding(10, 8, 10, 8)
+                .add(title)
+                .add(ui.label("Ana's pack, 12 of 40"));
+        final StackPanel clear = ui.stackPanel(Orientation.VERTICAL)
+                .setBackground(Paint.backdrop(0, 0xA0181A1F, 6))
+                .setPadding(10, 8, 10, 8)
+                .add(ui.label("No blur"))
+                .add(ui.label("The tint alone"));
+        return Samples.column(ui,
+                Samples.section(ui, "Panels",
+                        Samples.example(ui, "Blur 8, tint at five eighths, radius 6", glass),
+                        Samples.example(ui, "Blur 0", clear)),
+                Samples.note(ui, "Run the gallery in its Swing window to see the blur; snapshots and the Vulkan "
+                        + "window give no backdrop image, so the panels show their tint."));
     }
 
     private static Component<?> shapes(final PageContext context) {

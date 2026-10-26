@@ -23,8 +23,12 @@ import org.inspirenxe.strata.swing.StrataPanel;
 import org.inspirenxe.strata.swing.SwingPlatform;
 import org.inspirenxe.strata.swing.SwingTextMetrics;
 
+import java.awt.Color;
+import java.awt.Graphics2D;
 import java.awt.GraphicsEnvironment;
 import java.awt.Rectangle;
+import java.awt.RenderingHints;
+import java.awt.image.BufferedImage;
 import java.util.List;
 import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
@@ -45,6 +49,30 @@ final class SwingGallery extends GalleryHost {
         final SwingPlatform platform = new SwingPlatform(new SwingTextMetrics(this.text, this.monospace));
         this.panel = new StrataPanel(platform, look.theme(), Gallery.SCALE, look.swingSprites());
         this.panel.screens().setFrameRate(frameRate);
+        // What the frosted glass page's panels blur
+        this.panel.setBackdrop(SwingGallery.scene());
+    }
+
+    /**
+     * Paints a field of colored circles, the picture behind the gallery's screens that frosted glass blurs.
+     */
+    private static BufferedImage scene() {
+        final BufferedImage scene = new BufferedImage(640, 400, BufferedImage.TYPE_INT_ARGB);
+        final Graphics2D g = scene.createGraphics();
+        try {
+            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g.setColor(new Color(0xFF1B2A41));
+            g.fillRect(0, 0, 640, 400);
+            final int[] colors = {0xFFE05050, 0xFF4C86E0, 0xFF43A047, 0xFFE0A030, 0xFF8E6AD8};
+            for (int i = 0; i < 40; i++) {
+                g.setColor(new Color(colors[i % colors.length]));
+                final int size = 30 + i * 37 % 60;
+                g.fillOval(i * 97 % 640 - size / 2, i * 59 % 400 - size / 2, size, size);
+            }
+        } finally {
+            g.dispose();
+        }
+        return scene;
     }
 
     /**
